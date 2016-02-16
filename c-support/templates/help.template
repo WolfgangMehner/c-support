@@ -1,0 +1,23 @@
+§ =============================================================
+§  Help
+§
+§  every time a help template is used, it opens an URL in the
+§  browser, which follows this general format:
+§    |HelpPathXYZ|<word under the cursor>
+§
+§  use g:Templates_InternetBrowserExec to set the browser
+§
+§  help English:
+§  - pick up the word under the cursor
+§  - delete non-word characters before calling the help
+§  - the word is always included in the URL in lowercase,
+§    which seems to work better
+§ =============================================================
+
+SetMacro( 'HelpPathEnglish', 'http://en.wiktionary.org/wiki/' )
+
+== HELP: Help.English == map:he, sc:e ==
+|Word( '' )|
+|Substitute( '\W', '', 'g' )|
+|Browser( '|HelpPathEnglish||PICK:l|' )|
+== ENDTEMPLATE ==

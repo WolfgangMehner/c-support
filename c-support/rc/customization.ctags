@@ -1,0 +1,9 @@
+
+--regex-make=/^[[:space:]]*([[:alnum:]_]+)[[:space:]]*:?=/\1/v,variables/
+--regex-make=/^([^:# \t]+)[ \t]*:[[:space:]]*([^=]?.*)/\1:  \2/t,targets/
+--regex-make=/^include[ \t]+(.+)/\1/i,includes/
+
+--langdef=qmake
+--langmap=qmake:+.pro
+--regex-qmake=/^([[:upper:]_]+)/\1/t,SystemVariables/
+

@@ -1,0 +1,73 @@
+§ =============================================================
+§  Interface Version
+§
+§  enable advanced features
+§ =============================================================
+
+InterfaceVersion ( '1.0' )
+
+§ ==========================================================
+§  Settings
+§ ==========================================================
+
+SetMacro( 'AUTHOR',       'YOUR NAME' )
+SetMacro( 'AUTHORREF',    '' )
+SetMacro( 'EMAIL',        '' )
+SetMacro( 'ORGANIZATION', '' )
+SetMacro( 'COMPANY',      '' )
+SetMacro( 'COPYRIGHT',    'Copyright (c) |YEAR|, |AUTHOR|' )
+SetMacro( 'LICENSE',      'GNU General Public License' )
+
+SetFormat( 'DATE', '%x' )
+SetFormat( 'TIME', '%X' )
+SetFormat( 'YEAR', '%Y' )
+
+SetStyle( 'C' )
+
+§ ==========================================================
+§  File Includes and Shortcuts
+§ ==========================================================
+
+MenuShortcut( 'Comments',     'c' )
+MenuShortcut( 'Statements',   's' )
+MenuShortcut( 'Idioms',       'i' )
+MenuShortcut( 'Preprocessor', 'p' )
+MenuShortcut( 'Snippets',     'n' )
+MenuShortcut( 'C++',          'c' )
+MenuShortcut( 'Help',         'h' )
+
+IncludeFile( 'snippets.template' )
+
+§ different comments for styles "C", "CPP" and "Doxygen":
+
+== USE STYLES : C ==
+IncludeFile( 'c.comments.template' )
+== ENDSTYLES ==
+
+== USE STYLES : CPP ==
+IncludeFile( 'cpp.comments.template' )
+== ENDSTYLES ==
+
+§ the rest of the templates are the same for the two styles "C" and "Doxygen";
+§ you may also group "Doxygen" and "CPP" if you like this better:
+
+== USE STYLES : C, Doxygen ==
+IncludeFile( 'c.statements.template'   )
+IncludeFile( 'c.idioms.template'       )
+IncludeFile( 'c.preprocessor.template' )
+IncludeFile( 'c.cpp.template'          )
+== ENDSTYLES ==
+
+== USE STYLES : CPP ==
+IncludeFile( 'cpp.statements.template'   )
+IncludeFile( 'cpp.idioms.template'       )
+IncludeFile( 'cpp.preprocessor.template' )
+IncludeFile( 'cpp.cpp.template'          )
+== ENDSTYLES ==
+
+§ =============================================================
+§  Help
+§ =============================================================
+
+IncludeFile( 'help.template' )
+

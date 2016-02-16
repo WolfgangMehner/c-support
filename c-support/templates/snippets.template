@@ -1,0 +1,13 @@
+== LIST: snippets_jumptags == hash ==
+	'less-plus'      : '<+<CURSOR>+>',
+	'less-minus'     : '<-<CURSOR>->',
+	'brace-plus'     : '{+<CURSOR>+}',
+	'brace-minus'    : '{-<CURSOR>-}',
+	'optional-plus'  : '[+<CURSOR>+]',
+	'optional-minus' : '[-<CURSOR>-]',
+== ENDLIST ==
+
+== Snippets.jump tags == expandmenu, insert, map:njt, shortcut:m ==
+|PickList( 'jumptags', 'snippets_jumptags' )|
+|PICK|
+== ENDTEMPLATE ==

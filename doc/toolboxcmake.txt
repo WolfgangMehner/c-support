@@ -1,0 +1,422 @@
+*toolboxcmake.txt*                 CMake Tool                      Feb 05 2016
+
+CMake Tool                                                     *toolbox-cmake*
+
+                            Plug-in version 0.9.2
+                        for Vim version 7.0 and above
+                 Wolfgang Mehner <wolfgang-mehner at web.de>
+
+The CMake tool offers an integration of CMake's makefile generator. It also
+helps with calling the make tool in the build location, independently of the
+current working directory. It comes with command-line completion for make
+targets. CMake's help can be quickly accessed within Vim.
+
+==============================================================================
+0.  TABLE OF CONTENTS                                 *toolbox-cmake-contents*
+==============================================================================
+
+ 1.    Introduction                               |toolbox-cmake-intro|
+ 2.    Commands                                   |toolbox-cmake-commands|
+ 2.1    API                                       |toolbox-cmake-api|
+ 3.    Configuration                              |toolbox-cmake-config|
+ 4.    Troubleshooting - Known Issues             |toolbox-cmake-issues|
+
+ A.    Change Log                                 |toolbox-cmake-change-log|
+
+==============================================================================
+1.  INTRODUCTION                                         *toolbox-cmake-intro*
+==============================================================================
+
+After configuring the project's top-level directory with |:CMakeProjectDir|
+and setting the build location using |:CMakeBuildLocation|, CMake can be run
+by calling the ex-command |:CMake|! (with a bang). Command line arguments can
+be given directly, for example: >
+  :CMake! -DDO_TESTS=1
+After that, :CMake (without a bang) can be used to execute the make tool in
+the build location: >
+  :CMake -j3
+Errors will be listed in the quick-fix buffer. You can view the cached
+variables using |:CMakeCache|.
+
+The :CMake command has command-line completion for the targets of the makefile
+in the build location.
+
+The configured directories and other important information immediately
+influencing the behavior at runtime can be displayed via |:CMakeRuntime|,
+which provides a short overview of the current state of the tool.
+
+Help for CMake's commands can be accessed using |:CMakeHelpCommand|: >
+  :CMakeHelpCommand add_library
+This will open a new buffer containing the help. Calling the command without
+parameters will open a buffer showing a list of all commands: >
+  :CMakeHelpCommand
+Similar ex-commands exist for modules, policies, properties and variables, see
+below.
+
+  Command                       Short Description
+ ----------------------------------------------------------------------------
+  |:CMake|! [<args>]              run CMake with the given arguments
+  |:CMake| [<args>]               run make with the given arguments
+
+  |:CMakeCache| [<arg>]           show the cached variables
+
+  |:CMakeCurses| [<args>]         run ccmake with the given arguments
+  |:CMakeGui| [<args>]            run cmake-gui with the given arguments
+
+  |:CMakeProjectDir| [<dir>]      set the project directory
+  |:CMakeBuildLocation| [<dir>]   set the build location
+
+  |:CMakeHelpCommand| [<topic>]   help for commands
+  |:CMakeHelpModule| [<topic>]    help for modules
+  |:CMakeHelpPolicy| [<topic>]    help for policies
+  |:CMakeHelpProperty| [<topic>]  help for properties
+  |:CMakeHelpVariable| [<topic>]  help for variables
+
+  |:CMakeRuntime|                 shows the runtime information
+  |:CMakeSettings|                shows the plug-in settings
+  |:CMakeHelp|                    help for the CMake tool
+ ----------------------------------------------------------------------------
+
+Detailed explanations are given in the next section |toolbox-cmake-commands|.
+
+==============================================================================
+2.  COMMANDS                                          *toolbox-cmake-commands*
+==============================================================================
+
+This chapter provides detailed explanations of all the commands.
+
+------------------------------------------------------------------------------
+                                                                      *:CMake*
+  :CMake! [<args>] ~
+
+Runs cmake with the given arguments. If no arguments are given, calls cmake
+with the directory set by |:CMakeProjectDir|.
+
+If the tool is not working properly, prints the reason.
+
+  :CMake [<args>] ~
+
+Runs make with the given arguments. Beforehand, the working directory is set
+to the directory configured with |:CMakeBuildLocation|.
+
+The command has command-line completion for the targets of the makefile in the
+build location. All targets named ".../fast" can be hidden by setting
+|g:CMake_FilterFastTargets|.
+
+------------------------------------------------------------------------------
+                                                                 *:CMakeCache*
+  :CMakeCache [<arg>] ~
+
+Open a buffer which lists the cached variables of the current build (see
+|:CMakeBuildLocation|). The optional argument can be used to include advanced
+variables and/or help for each variable.
+
+The argument 'arg' can be one of the following (use tab-completion):
+
+  -L    - list non-advanced cached variables (default)
+  -LA   - ... include advanced variables
+  -LH   - include the help for each variable
+  -LAH  - ... include advanced variables
+
+In the cache buffer, several maps are defined.
+
+  Map           Meaning
+ ----------------------------------------------------------------------------
+  q             close the buffer
+ ----------------------------------------------------------------------------
+
+------------------------------------------------------------------------------
+                                                      *:CMakeCurses* *:CMakeGui*
+  :CMakeCurses [<args>] ~
+  :CMakeGui [<args>] ~
+
+Runs ccmake (in xterm) or cmake-gui with arguments as follows, using the first
+rule which applies:
+- if there are arguments given on the Vim command line, pass those
+- if the build location (|:CMakeBuildLocation|) is a valid directory, pass it
+  as the only argument
+- if the project base directory (|:CMakeProjectDir|) is a valid directory,
+  pass it as the only argument
+
+For ccmake you need a working xterm (see |toolbox-cmake-xterm|).
+
+------------------------------------------------------------------------------
+                                        *:CMakeProjectDir* *:CMakeBuildLocation*
+  :CMakeProjectDir [<dir>] ~
+  :CMakeBuildLocation [<dir>] ~
+
+Sets the project directory or build location.
+
+  :CMakeProjectDir! ~
+  :CMakeBuildLocation! ~
+
+Echoes the current project directory or build location.
+
+------------------------------------------------------------------------------
+                                        *:CMakeHelpCommand* *:CMakeHelpModule*
+                                        *:CMakeHelpPolicy*  *:CMakeHelpProperty*
+                                                          *:CMakeHelpVariable*
+  :CMakeHelpCommand [<topic>] ~
+  :CMakeHelpModule [<topic>] ~
+  :CMakeHelpPolicy [<topic>] ~
+  :CMakeHelpProperty [<topic>] ~
+  :CMakeHelpVariable [<topic>] ~
+
+Open a buffer containing the help for the topic in each category. If no topic
+is given, shows a list of all commands, modules, variables, ...
+
+In each of the help buffers, several maps are defined.
+
+  Map           Meaning
+ ----------------------------------------------------------------------------
+  doubleclick   jump to the topic under the cursor/back to the list
+  CTRL-]        jump to the topic under the cursor/back to the list
+  <Enter>       jump to the topic under the cursor/back to the list
+  q             close the buffer
+ ----------------------------------------------------------------------------
+
+------------------------------------------------------------------------------
+                                                                  *:CMakeHelp*
+  :CMakeHelp ~
+
+Opens the help for the CMake tool.
+
+------------------------------------------------------------------------------
+                                                               *:CMakeRuntime*
+  :CMakeRuntime ~
+
+Shows important runtime information:
+- the quickfix jump setting (|g:CMake_JumpToError|)
+- the "fast" make target filter (|g:CMake_FilterFastTargets|)
+- the configured directories (project and build)
+
+------------------------------------------------------------------------------
+                                                              *:CMakeSettings*
+  :CMakeSettings ~
+  :CMakeSettings! ~
+
+Shows the plug-in settings. The second version is verbose.
+
+------------------------------------------------------------------------------
+2.1  API                                                   *toolbox-cmake-api*
+------------------------------------------------------------------------------
+
+The various directories can be set via an API. This allows for setting up the
+configuration via a script.
+
+------------------------------------------------------------------------------
+                                                  *mmtoolbox#cmake#Property()*
+The project and build directory can be set using:
+
+  mmtoolbox#cmake#Property ( mode, key [, value] ) ~
+
+Parameters:
+  mode  - "echo", "get" or "set" (string)
+  key   - the name of one of the properties (string)
+  value - the new value of the property,
+          only with mode "set" (string, optional)
+Returns:
+  value - the current value of the property,
+          only with mode "get" (various)
+
+The property is one of the following:
+  "enabled"     - non-zero if the tool is enabled (integer, no "set")
+  "project-dir" - the project's top-level directory (string)
+  "build-dir"   - the build location (string)
+
+To set the directories for a project, use: >
+  call mmtoolbox#cmake#Property ( "set",
+      \ "project-dir", "$HOME/Projects/MyProject" )
+  call mmtoolbox#cmake#Property ( "set",
+      \ "build-dir", "$HOME/Projects/MyProject/build" )
+<
+==============================================================================
+3.  CONFIGURATION                                       *toolbox-cmake-config*
+==============================================================================
+
+The tool is configured via a number of global variables, which can be set in
+the .vimrc file.
+
+  Variable                  Default       Description and further information
+ ----------------------------------------------------------------------------
+  |g:CMake_BinPath|           ''            the path to the CMake binaries (^1)
+  |g:CMake_Executable|        'cmake'       the CMake executable
+  |g:CMake_MakeTool|          'make'        the make executable
+  |g:CMake_CCMakeExec|        'ccmake'      the ccmake executable (^2)
+  |g:CMake_GuiExec|           'cmake-gui'   the cmake-gui executable
+
+  |g:CMake_JumpToError|       'cmake'       whether to jump to the first error
+                                            automatically
+  |g:CMake_FilterFastTargets| 'no'          whether to filter the ".../fast"
+                                            targets when tab-completing make
+                                            targets
+
+  g:Xterm_Executable        'xterm'       the xterm executable (^3)
+  g:Xterm_Options           '...'         the xterm default settings (^3)
+ ----------------------------------------------------------------------------
+
+(^1)
+  The Unix defaults are as follows:
+  |g:CMake_BinPath|           - -empty-
+  |g:CMake_Executable|        - g:CMake_BinPath + cmake
+  |g:CMake_CCMakeExec|        - g:CMake_BinPath + ccmake
+  |g:CMake_GuiExec|           - g:CMake_BinPath + cmake-gui
+  the Windows defaults are as follows:
+  |g:CMake_BinPath|           - -empty-
+  |g:CMake_Executable|        - g:CMake_BinPath + cmake.exe
+  |g:CMake_GuiExec|           - g:CMake_BinPath + cmake-gui.exe
+(^2) UNIX only
+(^3) UNIX only, see |toolbox-cmake-xterm|
+
+------------------------------------------------------------------------------
+                                                             *g:CMake_BinPath*
+The path to the executables is set by g:CMake_BinPath: >
+  let g:CMake_BinPath = '/usr/local/bin/'
+Since cmake and cmake-gui will be on the path, this will not be necessary on
+most UNIX systems.
+
+For Windows, set up the binary path similar to this: >
+  let g:CMake_BinPath = 'C:\Program Files\CMake\bin\'
+<
+The defaults for |g:CMake_Executable|, |g:CMake_CCMakeExec| and
+|g:CMake_GuiExec| are derived from g:CMake_BinPath. However, the setting
+g:CMake_BinPath is only used to derive the defaults. If one of the executables
+is set explicitly, it has to be set with the whole path.
+
+                                                          *g:CMake_Executable*
+The executable is set by g:CMake_Executable: >
+  let g:CMake_Executable = 'cmake'
+<
+                                                            *g:CMake_MakeTool*
+The make executable is set by g:CMake_MakeTool: >
+  let g:CMake_MakeTool = 'make'
+<
+                                                          *g:CMake_CCMakeExec*
+The make executable is set by g:CMake_CCMakeExec: >
+  let g:CMake_CCMakeExec = 'ccmake'
+<
+                                                             *g:CMake_GuiExec*
+The cmake-gui executable is set by g:CMake_GuiExec: >
+  let g:CMake_GuiExec = 'cmake-gui'
+<
+------------------------------------------------------------------------------
+                                                         *g:CMake_JumpToError*
+After running cmake or make, quickfix will automatically jump to the location
+of the first error, depending on the setting g:CMake_JumpToError. With >
+  let g:CMake_JumpToError = 'both'
+quickfix will jump to the first error for both make and cmake. To only jump to
+the first error automatically after running cmake, use >
+  let g:CMake_JumpToError = 'cmake'
+<
+The possible settings are listed below:
+
+  Value           Jump automatically after ...
+ ----------------------------------------------------------------------------
+  'both'          cmake and make
+  'cmake'         cmake (default)
+  'make'          make
+  'none'          none of the above
+ ----------------------------------------------------------------------------
+
+The behavior can be changed on the fly by settings the variable to a different
+value on the command line.
+
+------------------------------------------------------------------------------
+                                                   *g:CMake_FilterFastTargets*
+The command-line completion for the |:CMake| command shows the targets in the
+makefile in the directories set via |:CMakeBuildLocation|. The list of
+possible targets can get quite cluttered if all targets named ".../fast" are
+included. They can be filtered out by setting: >
+  let g:CMake_FilterFastTargets = 'yes'
+<
+The possible settings are listed below:
+
+  Value           Effect
+ ----------------------------------------------------------------------------
+  'yes'           filter out targets named ".../fast"
+  'no'            show all targets (default)
+ ----------------------------------------------------------------------------
+
+The behavior can be changed on the fly by settings the variable to a different
+value on the command line.
+
+------------------------------------------------------------------------------
+                                                         *toolbox-cmake-xterm*
+The xterm related functionality is only available under UNIX. It is used to
+run interactive commands.
+
+                                                          g:Xterm_Executable
+The xterm executable is set by g:Xterm_Executable, for example: >
+  let g:Xterm_Executable = '/usr/local/bin/xterm'
+<
+                                                             g:Xterm_Options
+Set additional options for xterm. The default is: >
+  let g:Xterm_Options = '-fa courier -fs 12 -geometry 80x24'
+<
+For example, use these arguments for black letters on a white background: >
+  let g:Xterm_Options = '-fg black -bg white -fs 12 -geometry 80x24'
+<
+See the man-page of xterm for the possible options.
+
+The behavior can be changed on the fly by settings the variable to a different
+value on the command line.
+
+==============================================================================
+4.  TROUBLESHOOTING - KNOWN ISSUES                      *toolbox-cmake-issues*
+==============================================================================
+
+* cmake, ccmake, or cmake-gui are not running.
+  - Are they executable from the command line?
+  - Is the $PATH variable set correctly?
+  - Are the settings correct? See:
+      :help |toolbox-cmake-config|
+  - Under Windows, make sure the options 'shell', 'shellcmdflag',
+    'shellquote', and 'shellxquote' are set correctly. If "cmd.exe" is used as
+    the 'shell', 'shellxquote' must be set to a double quote:
+      :set shellxquote=\"
+
+* Some of the errors are not recognized by the quickfix mechanism.
+  - Unfortunately, CMake's automatically generated Makefiles seem to output
+    some errors which can not be recognized by Vim's standard error format
+    for C. If you come across any such errors, please send use an example and
+    we will try to extend the error format.
+
+==============================================================================
+A.  CHANGE LOG                                      *toolbox-cmake-change-log*
+==============================================================================
+
+------------------------------------------------------------------------------
+  RELEASE NOTES FOR VERSION 0.9.2
+------------------------------------------------------------------------------
+
+- Add: Command-line completion for Make targets and configuration
+  |g:CMake_FilterFastTargets|.
+- Add: Command |:CMakeCache|.
+- Add: Command |:CMakeCurses| and configuration |g:CMake_CCMakeExec|. (UNIX only)
+- Add: Command |:CMakeGui| and configuration |g:CMake_GuiExec|.
+- Add: Command |:CMakeRuntime|.
+- Add: Configuration |g:CMake_BinPath|.
+- Change: Enable the cmake help under Windows.
+- Change: Echo a different message if the build succeeded, but warnings are
+  present.
+- Internal changes, less global functions.
+- Further internal changes.
+- Minor changes and bugfixes.
+
+------------------------------------------------------------------------------
+  RELEASE NOTES FOR VERSION 0.9.1
+------------------------------------------------------------------------------
+
+- Change: The commands :CMake and :CMake! only jump to the first error
+  automatically if the setting |g:CMake_JumpToError| is set accordingly.
+- Change: Improved jumping in help buffers.
+- Minor changes.
+
+------------------------------------------------------------------------------
+  RELEASE NOTES FOR VERSION 0.9
+------------------------------------------------------------------------------
+
+- Initial upload.
+
+==============================================================================
+vim:tw=78:expandtab:ts=2:ft=help:norl:
