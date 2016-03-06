@@ -68,24 +68,57 @@ local filelists_repo = {}
 
 
 ------------------------------------------------------------------------
---  TODO   {{{1
+--  Awk   {{{1
 ------------------------------------------------------------------------
 
-filelists.TODO = {
+filelists.awk = {
+	'autoload/mmtemplates/',
+	'doc/awksupport.txt',
+	'doc/templatesupport.txt',
+	'ftdetect/template.vim',
+	'ftplugin/template.vim',
+	'plugin/awk-support.vim',
+	'syntax/template.vim',
+	'awk-support/codesnippets/',
+	'awk-support/doc/ChangeLog',
+	'awk-support/doc/awk-hotkeys.pdf',
+	'awk-support/doc/awk-hotkeys.tex',
+	'awk-support/rc/',
+	'awk-support/scripts/',
+	'awk-support/templates/',
+	'awk-support/wordlists/',
+	'awk-support/README.md',
 }
 
-filelists_repo.TODO = {
+filelists_repo.awk = {
 	'project/release.lua',
 }
 
 ------------------------------------------------------------------------
---  TODO   {{{1
+--  Bash   {{{1
 ------------------------------------------------------------------------
 
-filelists.TODO = {
+filelists.bash = {
+	'autoload/mmtemplates/',
+	'doc/bashsupport.txt',
+	'doc/templatesupport.txt',
+	'ftdetect/template.vim',
+	'ftplugin/sh.vim',
+	'ftplugin/template.vim',
+	'plugin/bash-support.vim',
+	'syntax/template.vim',
+	'bash-support/codesnippets/',
+	'bash-support/doc/ChangeLog',
+	'bash-support/doc/bash-hotkeys.pdf',
+	'bash-support/doc/bash-hotkeys.tex',
+	'bash-support/rc/',
+	'bash-support/scripts/',
+	'bash-support/templates/',
+	'bash-support/wordlists/',
+	'bash-support/README.md',
 }
 
-filelists_repo.TODO = {
+filelists_repo.bash = {
 	'project/release.lua',
 }
 
