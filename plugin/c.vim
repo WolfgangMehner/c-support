@@ -42,38 +42,70 @@ if exists("g:C_Version") || &cp
  finish
 endif
 let g:C_Version= "6.2"								" version number of this script; do not change
+
+"-------------------------------------------------------------------------------
+" Auxiliary functions.   {{{1
+"-------------------------------------------------------------------------------
+
+"-------------------------------------------------------------------------------
+" s:ApplyDefaultSetting : Write default setting to a global variable.   {{{2
 "
+" Parameters:
+"   varname - name of the variable (string)
+"   value   - default value (string)
+" Returns:
+"   -
+"
+" If g:<varname> does not exists, assign:
+"   g:<varname> = value
+"-------------------------------------------------------------------------------
+
+function! s:ApplyDefaultSetting ( varname, value )
+	if ! exists ( 'g:'.a:varname )
+		let { 'g:'.a:varname } = a:value
+	endif
+endfunction    " ----------  end of function s:ApplyDefaultSetting  ----------
+
+"-------------------------------------------------------------------------------
+" s:GetGlobalSetting : Get a setting from a global variable.   {{{2
+"
+" Parameters:
+"   varname - name of the variable (string)
+"   glbname - name of the global variable (string, optional)
+" Returns:
+"   -
+"
+" If 'glbname' is given, it is used as the name of the global variable.
+" Otherwise the global variable will also be named 'varname'.
+"
+" If g:<glbname> exists, assign:
+"   s:<varname> = g:<glbname>
+"-------------------------------------------------------------------------------
+
+function! s:GetGlobalSetting ( varname, ... )
+	let lname = a:varname
+	let gname = a:0 >= 1 ? a:1 : lname
+	if exists ( 'g:'.gname )
+		let { 's:'.lname } = { 'g:'.gname }
+	endif
+endfunction    " ----------  end of function s:GetGlobalSetting  ----------
+
 "===  FUNCTION  ================================================================
 "          NAME:  C_CheckGlobal   {{{1
 "   DESCRIPTION:  Assign a value to a local variable if a corresponding global
 "                 variable exists.
 "    PARAMETERS:  name - variable to set
 "===============================================================================
+" :TODO:17.03.2016 10:39:WM: remove this function eventually
 function! s:C_CheckGlobal ( name )
 	if exists('g:'.a:name)
 		exe 'let s:'.a:name.' = g:'.a:name
 	endif
 endfunction    " ----------  end of function s:C_CheckGlobal ----------
-"
-"===  FUNCTION  ================================================================
-"          NAME:  C_SetGlobalVariable     {{{1
-"   DESCRIPTION:  Define a global variable and assign a default value if not
-"                 already defined.
-"    PARAMETERS:  name - global variable
-"                 default - default value
-"===============================================================================
-function! s:C_SetGlobalVariable ( name, default )
-	if !exists('g:'.a:name)
-		exe 'let g:'.a:name." = '".a:default."'"
-	else
-		" check for an empty initialization
-		exe 'let	val	= g:'.a:name
-		if empty(val)
-			exe 'let g:'.a:name." = '".a:default."'"
-		endif
-	endif
-endfunction   " ---------- end of function  s:C_SetGlobalVariable  ----------
-"
+
+" }}}1
+"-------------------------------------------------------------------------------
+
 "#################################################################################
 "
 "  Global variables (with default values) which can be overridden.
@@ -166,29 +198,29 @@ endif
 "  Modul global variables (with default values) which can be overridden. {{{1
 "
 if	s:MSWIN
-	call s:C_SetGlobalVariable ( 'C_CCompiler',     'gcc.exe' )
-	call s:C_SetGlobalVariable ( 'C_CplusCompiler', 'g++.exe' )
+	call s:ApplyDefaultSetting ( 'C_CCompiler',     'gcc.exe' )
+	call s:ApplyDefaultSetting ( 'C_CplusCompiler', 'g++.exe' )
 	let s:C_ExeExtension        = '.exe'     " file extension for executables (leading point required)
 	let s:C_ObjExtension        = '.obj'     " file extension for objects (leading point required)
 	let s:C_Man                 = 'man.exe'  " the manual program
 else
-	call s:C_SetGlobalVariable ( 'C_CCompiler',     'gcc' )
-	call s:C_SetGlobalVariable ( 'C_CplusCompiler', 'g++' )
+	call s:ApplyDefaultSetting ( 'C_CCompiler',     'gcc' )
+	call s:ApplyDefaultSetting ( 'C_CplusCompiler', 'g++' )
 	let s:C_ExeExtension        = ''         " file extension for executables (leading point required)
 	let s:C_ObjExtension        = '.o'       " file extension for objects (leading point required)
 	let s:C_Man                 = 'man'      " the manual program
 endif
 "
-call s:C_SetGlobalVariable ( 'C_CFlags', '-Wall -g -O0 -c')
-call s:C_SetGlobalVariable ( 'C_LFlags', '-Wall -g -O0'   )
-call s:C_SetGlobalVariable ( 'C_Libs',   '-lm'            )
+call s:ApplyDefaultSetting ( 'C_CFlags', '-Wall -g -O0 -c')
+call s:ApplyDefaultSetting ( 'C_LFlags', '-Wall -g -O0'   )
+call s:ApplyDefaultSetting ( 'C_Libs',   '-lm'            )
 "
-call s:C_SetGlobalVariable ( 'C_CplusCFlags', '-Wall -g -O0 -c')
-call s:C_SetGlobalVariable ( 'C_CplusLFlags', '-Wall -g -O0'   )
-call s:C_SetGlobalVariable ( 'C_CplusLibs',   '-lm'            )
-call s:C_SetGlobalVariable ( 'C_Debugger',    'gdb'            )
+call s:ApplyDefaultSetting ( 'C_CplusCFlags', '-Wall -g -O0 -c')
+call s:ApplyDefaultSetting ( 'C_CplusLFlags', '-Wall -g -O0'   )
+call s:ApplyDefaultSetting ( 'C_CplusLibs',   '-lm'            )
+call s:ApplyDefaultSetting ( 'C_Debugger',    'gdb'            )
 "
-call s:C_SetGlobalVariable ( 'C_MapLeader', '' )       " default: do not overwrite 'maplocalleader'
+call s:ApplyDefaultSetting ( 'C_MapLeader', '' )       " default: do not overwrite 'maplocalleader'
 "
 let s:C_CExtension     				= 'c'                    " C file extension; everything else is C++
 let s:C_CodeCheckExeName      = 'check'
@@ -203,13 +235,12 @@ let s:C_Printheader           = "%<%f%h%m%<  %=%{strftime('%x %X')}     Page %N"
 let s:C_RootMenu  	   				= '&C\/C\+\+.'           " the name of the root menu of this plugin
 let s:C_TypeOfH               = 'cpp'
 let s:C_Wrapper               = s:plugin_dir.'/c-support/scripts/wrapper.sh'
-let s:C_XtermDefaults         = '-fa courier -fs 12 -geometry 80x24'
 let s:C_GuiSnippetBrowser     = 'gui'										" gui / commandline
 let s:C_UseToolbox            = 'yes'
-call s:C_SetGlobalVariable ( 'C_UseTool_cmake',   'no' )
-call s:C_SetGlobalVariable ( 'C_UseTool_doxygen', 'no' )
-call s:C_SetGlobalVariable ( 'C_UseTool_make',    'yes' )
-"
+call s:ApplyDefaultSetting ( 'C_UseTool_cmake',   'no' )
+call s:ApplyDefaultSetting ( 'C_UseTool_doxygen', 'no' )
+call s:ApplyDefaultSetting ( 'C_UseTool_make',    'yes' )
+
 let s:C_Ctrl_j								= 'on'
 "
 let s:C_SourceCodeExtensions  = 'c cc cp cxx cpp CPP c++ C i ii'
@@ -247,7 +278,23 @@ call s:C_CheckGlobal('C_RootMenu             ')
 call s:C_CheckGlobal('C_SourceCodeExtensions ')
 call s:C_CheckGlobal('C_TypeOfH              ')
 call s:C_CheckGlobal('C_UseToolbox           ')
-call s:C_CheckGlobal('C_XtermDefaults        ')
+
+" xterm
+
+let s:Xterm_Executable = 'xterm'
+let s:C_XtermDefaults  = '-fa courier -fs 12 -geometry 80x24'
+
+" check 'g:C_XtermDefaults' for backwards compatibility
+if ! exists ( 'g:Xterm_Options' )
+	call s:GetGlobalSetting ( 'C_XtermDefaults' )
+	" set default geometry if not specified
+	if match( s:C_XtermDefaults, "-geometry\\s\\+\\d\\+x\\d\\+" ) < 0
+		let s:C_XtermDefaults = s:C_XtermDefaults." -geometry 80x24"
+	endif
+endif
+
+call s:GetGlobalSetting ( 'Xterm_Executable' )
+call s:ApplyDefaultSetting ( 'Xterm_Options', s:C_XtermDefaults )
 
 "----- some variables for internal use only -----------------------------------
 "
@@ -256,13 +303,7 @@ if executable( 'stdbuf' )
 	" stdbuf : the output stream will be unbuffered
 	let s:stdbuf	= 'stdbuf -o0 '
 endif
-"
-" set default geometry if not specified
-"
-if match( s:C_XtermDefaults, "-geometry\\s\\+\\d\\+x\\d\\+" ) < 0
-	let s:C_XtermDefaults	= s:C_XtermDefaults." -geometry 80x24"
-endif
-"
+
 " escape the printheader
 "
 let s:C_Printheader  = escape( s:C_Printheader, ' %' )
@@ -309,7 +350,6 @@ let s:C_ForTypes     = [
     \ 'unsigned short int'    ,
     \ ]
 
-let s:MsgInsNotAvail	= "insertion not available for a fold" 
 let s:MenuRun         = s:C_RootMenu.'&Run'
 let s:Output					= [ 'VIM->buffer->xterm', 'BUFFER->xterm->vim', 'XTERM->vim->buffer' ]
 
@@ -324,6 +364,8 @@ let s:CppcheckSeverity	= [ "all", "error", "warning", "style", "performance", "p
 "    PARAMETERS:  -
 "       RETURNS:  
 "===============================================================================
+" :TODO:17.03.2016 10:39:WM: remove this function, is it unused but for one usage,
+" which should also be reworked
 function! C_MenuTitle ()
 		echohl WarningMsg | echo "This is a menu header." | echohl None
 endfunction    " ----------  end of function C_MenuTitle  ----------
@@ -473,7 +515,7 @@ function! s:C_InitMenus ()
 		exe ihead.'s&plint<Tab>'.esc_mapl.'rp                           <C-C>:call C_SplintCheck()<CR>:call C_HlMessage()<CR>'
 		exe ahead.'cmd\.\ line\ arg\.\ for\ spl&int<Tab>'.esc_mapl.'rpa      :call C_SplintArguments()<CR>'
 		exe ihead.'cmd\.\ line\ arg\.\ for\ spl&int<Tab>'.esc_mapl.'rpa <C-C>:call C_SplintArguments()<CR>'
-		exe ahead.'-SEP2-                                          :'
+		exe ahead.'-SEP-SPLINT-                                              :'
 	endif
 	"
 	if s:C_CppcheckIsExecutable==1
@@ -488,6 +530,7 @@ function! s:C_InitMenus ()
 		for level in s:CppcheckSeverity
 			exe ahead.'cppcheck\ severity<Tab>'.esc_mapl.'rccs.&'.level.'   :call C_GetCppcheckSeverity("'.level.'")<CR>'
 		endfor
+		exe ahead.'-SEP-CPPCHECK-   :'
 	endif
 	"
 	if s:C_CodeCheckIsExecutable==1
@@ -495,7 +538,7 @@ function! s:C_InitMenus ()
 		exe ihead.'CodeChec&k<Tab>'.esc_mapl.'rk                           <C-C>:call C_CodeCheck()<CR>:call C_HlMessage()<CR>'
 		exe ahead.'cmd\.\ line\ arg\.\ for\ Cod&eCheck<Tab>'.esc_mapl.'rka      :call C_CodeCheckArguments()<CR>'
 		exe ihead.'cmd\.\ line\ arg\.\ for\ Cod&eCheck<Tab>'.esc_mapl.'rka <C-C>:call C_CodeCheckArguments()<CR>'
-		exe ahead.'-SEP3-                                             :'
+		exe ahead.'-SEP-CODECHECK-                                              :'
 	endif
 	"
 	exe ahead.'in&dent<Tab>'.esc_mapl.'ri                                  :call C_Indent()<CR>'
@@ -900,7 +943,7 @@ function! C_CommentToggle () range
 		let line			= getline(linenumber)
 		" ----------  C => C++  ----------
 		if match( line, LineEndCommentC ) >= 0
-			let	line	= substitute( line, '\/\*\s*\(.\{-}\)\*\/', '\/\/ \1', '' )
+			let line = substitute( line, '\/\*\s*\(.\{-}\)\s*\*\/', '\/\/ \1', '' )
 			call setline( linenumber, line )
 			continue
 		endif
@@ -1630,7 +1673,7 @@ function! C_Run ()
 			if s:MSWIN
 				exe		'!'.Quote.s:C_ExecutableToRun.Quote.' '.l:arguments
 			else
-				silent exe '!xterm -title '.s:C_ExecutableToRun.' '.s:C_XtermDefaults.' -e '.s:C_Wrapper.' '.s:C_ExecutableToRun.' '.l:arguments.' &'
+				silent exe '!'.s:Xterm_Executable.' -title '.s:C_ExecutableToRun.' '.g:Xterm_Options.' -e '.s:C_Wrapper.' '.s:C_ExecutableToRun.' '.l:arguments.' &'
 				:redraw!
 				call C_HlMessage( "executable : '".s:C_ExecutableToRun."'" )
 			endif
@@ -1642,7 +1685,7 @@ function! C_Run ()
 				if s:MSWIN
 					exe		"!".Quote.ExeEsc.Quote." ".l:arguments
 				else
-					silent exe '!xterm -title '.ExeEsc.' '.s:C_XtermDefaults.' -e '.s:C_Wrapper.' '.ExeEsc.' '.l:arguments.' &'
+					silent exe '!'.s:Xterm_Executable.' -title '.ExeEsc.' '.g:Xterm_Options.' -e '.s:C_Wrapper.' '.ExeEsc.' '.l:arguments.' &'
 					:redraw!
 				endif
 			else
@@ -1695,7 +1738,7 @@ endfunction    " ----------  end of function C_Toggle_Gvim_Xterm ----------
 "------------------------------------------------------------------------------
 function! C_XtermSize ()
 	let regex	= '-geometry\s\+\d\+x\d\+'
-	let geom	= matchstr( s:C_XtermDefaults, regex )
+	let geom	= matchstr( g:Xterm_Options, regex )
 	let geom	= matchstr( geom, '\d\+x\d\+' )
 	let geom	= substitute( geom, 'x', ' ', "" )
 	let	answer= C_Input("   xterm size (COLUMNS LINES) : ", geom )
@@ -1703,7 +1746,7 @@ function! C_XtermSize ()
 		let	answer= C_Input(" + xterm size (COLUMNS LINES) : ", geom )
 	endwhile
 	let answer  = substitute( answer, '\s\+', "x", "" )						" replace inner whitespaces
-	let s:C_XtermDefaults	= substitute( s:C_XtermDefaults, regex, "-geometry ".answer , "" )
+	let g:Xterm_Options	= substitute( g:Xterm_Options, regex, "-geometry ".answer , "" )
 endfunction    " ----------  end of function C_XtermSize ----------
 "
 "------------------------------------------------------------------------------
@@ -1746,7 +1789,7 @@ function! C_Debugger ()
       exe '!gdb  "'.s:C_ExecutableToRun.l:arguments.'"'
     else
       if has("gui_running") || &term == "xterm"
-     	 	silent exe "!xterm ".s:C_XtermDefaults.' -e gdb ' . s:C_ExecutableToRun.l:arguments.' &'
+				silent exe "!".s:Xterm_Executable." ".g:Xterm_Options.' -e gdb ' . s:C_ExecutableToRun.l:arguments.' &'
       else
         silent exe '!clear; gdb ' . s:C_ExecutableToRun.l:arguments
       endif
@@ -2081,7 +2124,7 @@ function! C_Settings ( verbose )
 	" ----- dictionaries ------------------------
 	if !empty(g:C_Dictionary_File)
 		let ausgabe= &dictionary
-		let ausgabe= substitute( ausgabe, ",", ",\n                           + ", "g" )
+		let ausgabe= substitute( ausgabe, ",", ",\n                             ", "g" )
 		let txt = txt."       dictionary file(s) :  ".ausgabe."\n"
 	endif
 	" ----- map leader, menus, file headers -----
@@ -2104,11 +2147,14 @@ function! C_Settings ( verbose )
 	let txt = txt.'          libraries (C++) :  "'.g:C_CplusLibs."\"\n"
 	let txt = txt.'         C / C++ compiler :  "'.g:C_CCompiler.'" / "'.g:C_CplusCompiler."\"\n"
 	let txt = txt.'                 debugger :  "'.g:C_Debugger."\"\n"
-	let txt = txt."\n"
 	" ----- output ------------------------------
-	let txt = txt.'     current output dest. :  '.s:C_OutputGvim."\n"
-	if	!s:MSWIN
-		let txt = txt.'           xterm defaults :  '.s:C_XtermDefaults."\n"
+	if a:verbose >= 1
+		let txt = txt."\n"
+		let txt = txt."            output method :  ".s:C_OutputGvim."\n"
+	endif
+	if !s:MSWIN && a:verbose >= 1
+		let txt = txt.'         xterm executable :  '.s:Xterm_Executable."\n"
+		let txt = txt.'            xterm options :  '.g:Xterm_Options."\n"
 	endif
 	" ----- splint ------------------------------
 	if s:C_SplintIsExecutable==1
@@ -2232,8 +2278,10 @@ function! C_Help( type )
 		setlocal buftype=nofile
 		setlocal noswapfile
 		setlocal bufhidden=delete
-		setlocal filetype=sh		" allows repeated use of <S-F1>
 		setlocal syntax=OFF
+
+		 noremap  <buffer>  <silent>  <S-F1>        :call C_Help("m")<CR>
+		inoremap  <buffer>  <silent>  <S-F1>   <C-C>:call C_Help("m")<CR>
 	endif
 	setlocal	modifiable
 	"
@@ -2286,7 +2334,13 @@ function! C_Help( type )
 			endif
 		endif
 
+		" :WORKAROUND:05.04.2016 21:05:WM: setting the filetype changes the global tabstop,
+		" handle this manually
+		let ts_save = &g:tabstop
+
 		set filetype=man
+
+		let &g:tabstop = ts_save
 
 		" get the width of the newly opened window
 		" and set the width of man's output accordingly
