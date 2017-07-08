@@ -11,7 +11,7 @@
 "  Organization:  
 "       Version:  see variable g:Templates_Version below
 "       Created:  30.08.2011
-"      Revision:  27.09.2016
+"      Revision:  14.04.2017
 "       License:  Copyright (c) 2012-2016, Wolfgang Mehner
 "                 This program is free software; you can redistribute it and/or
 "                 modify it under the terms of the GNU General Public License as
@@ -1702,9 +1702,9 @@ function! s:IncludeFile ( templatefile, ... )
 	let filelines = readfile( templatefile )
 	"
 	for line in filelines
-		"
-		let firstchar = line[0]
-		"
+
+		let firstchar = matchstr( line, '^.\?' )
+
 		" which state
 		if state == 'command'
 			" ==================================================
@@ -3913,7 +3913,7 @@ function! s:DoCreateMap ( map, mode, report )
 		endif
 	endif
 
-	return empty ( mapinfo )
+	return empty ( mapinfo ) || mapinfo =~ 'mmtemplates#core#'
 endfunction    " ----------  end of function s:DoCreateMap  ----------
 " }}}2
 "----------------------------------------------------------------------
@@ -4458,10 +4458,11 @@ function! s:CreateSpecialsMenus ( styles_only )
 			if ! empty ( e_map )
 				let entry_compl .= '<TAB>'.map_ldr.mmtemplates#core#EscapeMenu( e_map, 'right' )
 			endif
-			exe 'anoremenu <silent> '.s:t_runtime.root_menu.specials_menu.entry_compl.' '.cmd
+			exe 'anoremenu <silent> '.s:t_runtime.root_menu.specials_menu.entry_compl.'           '.cmd
+			exe 'inoremenu <silent> '.s:t_runtime.root_menu.specials_menu.entry_compl.' <Esc><Esc>'.cmd
 		endfor
 	endif
-	"
+
 	" ==================================================
 	"  create a menu for all the styles
 	" ==================================================
@@ -4473,13 +4474,15 @@ function! s:CreateSpecialsMenus ( styles_only )
 	else               | let entry_styles = s:InsertShortcut ( '.choose\ style', sc_style, 0 ).'<TAB>'.map_style
 	endif
 	call s:CreateSubmenu ( specials_menu.entry_styles, s:StandardPriority )
-	"
+
 	" add entries for all styles
 	for s in s:library.styles
 		exe 'anoremenu <silent> '.s:t_runtime.root_menu.specials_menu.'.choose\ style.&'.s
 					\ .' :call mmtemplates#core#ChooseStyle('.s:t_runtime.lib_name.','.string(s).')<CR>'
+		exe 'inoremenu <silent> '.s:t_runtime.root_menu.specials_menu.'.choose\ style.&'.s
+					\ .' <Esc><Esc>:call mmtemplates#core#ChooseStyle('.s:t_runtime.lib_name.','.string(s).')<CR>'
 	endfor
-	"
+
 endfunction    " ----------  end of function s:CreateSpecialsMenus  ----------
 " }}}2
 "----------------------------------------------------------------------
@@ -4853,11 +4856,11 @@ function! mmtemplates#core#Resource ( library, mode, ... )
 		"
 		" get
 		if resource == 'list'
-			return [ get( t_lib.resources, 'list!'.key ), '' ]
+			return [ get( t_lib.resources, 'list!'.key ), has_key( t_lib.resources, 'list!'.key ) ? '' : 'List "'.key.'" does not exist.' ]
 		elseif resource == 'macro'
-			return [ get( t_lib.macros, key ), '' ]
+			return [ get( t_lib.macros, key ), has_key( t_lib.macros, key ) ? '' : 'Macro "'.key.'" does not exist.' ]
 		elseif resource == 'path'
-			return [ get( t_lib.resources, 'path!'.key ), '' ]
+			return [ get( t_lib.resources, 'path!'.key ),  has_key( t_lib.resources, 'path!'.key ) ? '' : 'Path "'.key.'" does not exist.' ]
 		elseif resource == 'property'
 			if has_key ( t_lib.properties, key )
 				return [ t_lib.properties[ key ], '' ]
@@ -4949,10 +4952,10 @@ function! mmtemplates#core#ChangeSyntax ( library, category, ... )
 			return s:ErrorMsg ( 'Not enough arguments for '.a:category.'.' )
 		elseif a:0 == 1
 			let t_lib.regex_settings.CommentStart = a:1
-			let t_lib.regex_settings.CommentHint  = a:1[0]
+			let t_lib.regex_settings.CommentHint  = matchstr( a:1, '^.\?' )
 		elseif a:0 == 2
 			let t_lib.regex_settings.CommentStart = a:1
-			let t_lib.regex_settings.CommentHint  = a:2[0]
+			let t_lib.regex_settings.CommentHint  = matchstr( a:2, '^.\?' )
 		endif
 		"
 		call s:UpdateFileReadRegex ( t_lib.regex_file, t_lib.regex_settings, t_lib.interface )
@@ -5236,7 +5239,7 @@ function! mmtemplates#core#AddCustomTemplateFiles ( library, temp_list, list_nam
 			call s:ErrorMsg ( 'The entry of '.a:list_name.' with index '.i.' does not contain a file name.' )
 			continue
 		elseif ! filereadable ( file_name )
-			call s:ErrorMsg ( 'The entry of '.a:list_name.' with index '.i.' does not name a readable file.' )
+			call s:ErrorMsg ( 'The entry of '.a:list_name.' with index '.i.' does not name a readable file:', '  '.file_name )
 			continue
 		endif
 		"

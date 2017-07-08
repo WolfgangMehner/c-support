@@ -17,6 +17,7 @@
 "
 "        Version:  see variable  g:C_Version  below
 "        Created:  04.11.2000
+"       Revision:  29.01.2017
 "        License:  Copyright (c) 2000-2014, Fritz Mehner
 "                  Copyright (c) 2015-2016, Wolfgang Mehner
 "                  This program is free software; you can redistribute it and/or
@@ -30,21 +31,29 @@
 "                  See the GNU General Public License version 2 for more details.
 "
 "------------------------------------------------------------------------------
-"
-if v:version < 700
-  echohl WarningMsg | echo 'The plugin c.vim needs Vim version 7+.'| echohl None
-  finish
-endif
-"
-" Prevent duplicate loading:
-"
-if exists("g:C_Version") || &cp
- finish
-endif
-let g:C_Version= "6.2.1"								" version number of this script; do not change
 
 "-------------------------------------------------------------------------------
-" Auxiliary functions.   {{{1
+" === Basic checks ===   {{{1
+"-------------------------------------------------------------------------------
+
+" need at least 7.0
+if v:version < 700
+	echohl WarningMsg
+	echo 'The plugin c.vim needs Vim version >= 7.'
+	echohl None
+	finish
+endif
+
+" prevent duplicate loading
+" need compatible
+if exists("g:C_Version") || &cp
+	finish
+endif
+
+let g:C_Version= "6.2.1pre"                  " version number of this script; do not change
+
+"-------------------------------------------------------------------------------
+" === Auxiliary functions ===   {{{1
 "-------------------------------------------------------------------------------
 
 "-------------------------------------------------------------------------------
@@ -65,6 +74,25 @@ function! s:ApplyDefaultSetting ( varname, value )
 		let { 'g:'.a:varname } = a:value
 	endif
 endfunction    " ----------  end of function s:ApplyDefaultSetting  ----------
+
+"-------------------------------------------------------------------------------
+" s:ErrorMsg : Print an error message.   {{{2
+"
+" Parameters:
+"   line1 - a line (string)
+"   line2 - a line (string)
+"   ...   - ...
+" Returns:
+"   -
+"-------------------------------------------------------------------------------
+
+function! s:ErrorMsg ( ... )
+	echohl WarningMsg
+	for line in a:000
+		echomsg line
+	endfor
+	echohl None
+endfunction    " ----------  end of function s:ErrorMsg  ----------
 
 "-------------------------------------------------------------------------------
 " s:GetGlobalSetting : Get a setting from a global variable.   {{{2
@@ -90,33 +118,117 @@ function! s:GetGlobalSetting ( varname, ... )
 	endif
 endfunction    " ----------  end of function s:GetGlobalSetting  ----------
 
-"===  FUNCTION  ================================================================
-"          NAME:  C_CheckGlobal   {{{1
-"   DESCRIPTION:  Assign a value to a local variable if a corresponding global
-"                 variable exists.
-"    PARAMETERS:  name - variable to set
-"===============================================================================
-" :TODO:17.03.2016 10:39:WM: remove this function eventually
-function! s:C_CheckGlobal ( name )
-	if exists('g:'.a:name)
-		exe 'let s:'.a:name.' = g:'.a:name
-	endif
-endfunction    " ----------  end of function s:C_CheckGlobal ----------
-
-" }}}1
+"-------------------------------------------------------------------------------
+" s:ImportantMsg : Print an important message.   {{{2
+"
+" Parameters:
+"   line1 - a line (string)
+"   line2 - a line (string)
+"   ...   - ...
+" Returns:
+"   -
 "-------------------------------------------------------------------------------
 
-"#################################################################################
+function! s:ImportantMsg ( ... )
+	echohl Search
+	echo join ( a:000, "\n" )
+	echohl None
+endfunction    " ----------  end of function s:ImportantMsg  ----------
+
+"-------------------------------------------------------------------------------
+" s:SID : Return the <SID>.   {{{2
 "
-"  Global variables (with default values) which can be overridden.
+" Parameters:
+"   -
+" Returns:
+"   SID - the SID of the script (string)
+"-------------------------------------------------------------------------------
+
+function! s:SID ()
+	return matchstr ( expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$' )
+endfunction    " ----------  end of function s:SID  ----------
+
+"-------------------------------------------------------------------------------
+" s:UserInput : Input after a highlighted prompt.   {{{2
 "
-" Platform specific items:  {{{1
+" Parameters:
+"   prompt - the prompt (string)
+"   text - the default input (string)
+"   compl - completion (string, optional)
+"   clist - list, if 'compl' is "customlist" (list, optional)
+" Returns:
+"   input - the user input, an empty sting if the user hit <ESC> (string)
+"-------------------------------------------------------------------------------
+
+function! s:UserInput ( prompt, text, ... )
+
+	echohl Search                                         " highlight prompt
+	call inputsave()                                      " preserve typeahead
+	if a:0 == 0 || a:1 == ''
+		let retval = input( a:prompt, a:text )
+	elseif a:1 == 'customlist'
+		let s:UserInputList = a:2
+		let retval = input( a:prompt, a:text, 'customlist,<SNR>'.s:SID().'_UserInputEx' )
+		let s:UserInputList = []
+	else
+		let retval = input( a:prompt, a:text, a:1 )
+	endif
+	call inputrestore()                                   " restore typeahead
+	echohl None                                           " reset highlighting
+
+	let retval  = substitute( retval, '^\s\+', "", "" )   " remove leading whitespaces
+	let retval  = substitute( retval, '\s\+$', "", "" )   " remove trailing whitespaces
+
+	return retval
+
+endfunction    " ----------  end of function s:UserInput ----------
+
+"-------------------------------------------------------------------------------
+" s:UserInputEx : ex-command for s:UserInput.   {{{3
+"-------------------------------------------------------------------------------
+function! s:UserInputEx ( ArgLead, CmdLine, CursorPos )
+	if empty( a:ArgLead )
+		return copy( s:UserInputList )
+	endif
+	return filter( copy( s:UserInputList ), 'v:val =~ ''\V\<'.escape(a:ArgLead,'\').'\w\*''' )
+endfunction    " ----------  end of function s:UserInputEx  ----------
+" }}}3
+"-------------------------------------------------------------------------------
+
+"-------------------------------------------------------------------------------
+" s:WarningMsg : Print a warning/error message.   {{{2
+"
+" Parameters:
+"   line1 - a line (string)
+"   line2 - a line (string)
+"   ...   - ...
+" Returns:
+"   -
+"-------------------------------------------------------------------------------
+
+function! s:WarningMsg ( ... )
+	echohl WarningMsg
+	echo join ( a:000, "\n" )
+	echohl None
+endfunction    " ----------  end of function s:WarningMsg  ----------
+
+" }}}2
+"-------------------------------------------------------------------------------
+
+"-------------------------------------------------------------------------------
+" === Module setup ===   {{{1
+"-------------------------------------------------------------------------------
+
+"-------------------------------------------------------------------------------
+" == Platform specific items ==   {{{2
+"
 " - root directory
 " - characters that must be escaped for filenames
-"
-let s:MSWIN = has("win16") || has("win32")   || has("win64")    || has("win95")
-let s:UNIX	= has("unix")  || has("macunix") || has("win32unix")
-"
+"-------------------------------------------------------------------------------
+
+let s:MSWIN = has("win16") || has("win32")   || has("win64")     || has("win95")
+let s:UNIX  = has("unix")  || has("macunix") || has("win32unix")
+
 let g:C_Installation				= '*undefined*'
 let s:plugin_dir						= ''
 "
@@ -130,7 +242,7 @@ let s:C_ToolboxDir					= []
 if	s:MSWIN
   " ==========  MS Windows  ======================================================
 	"
-	let s:plugin_dir	= substitute( expand('<sfile>:p:h:h'), '\', '/', 'g' )
+	let s:plugin_dir = substitute( expand('<sfile>:p:h:h'), '\', '/', 'g' )
 	"
 	" change '\' to '/' to avoid interpretation as escape character
 	if match(	substitute( expand("<sfile>"), '\', '/', 'g' ), 
@@ -184,19 +296,27 @@ endif
 let s:C_AdditionalTemplates   = mmtemplates#config#GetFt ( 'c' )
 let s:C_CodeSnippets  				= s:plugin_dir.'/c-support/codesnippets/'
 let s:C_IndentErrorLog				= $HOME.'/.indent.errorlog'
+
+"-------------------------------------------------------------------------------
+" == Various settings ==   {{{2
+"-------------------------------------------------------------------------------
+
+"-------------------------------------------------------------------------------
+" Use of dictionaries   {{{3
 "
-"  Use of dictionaries  {{{1
-"  Key word completion is enabled by the filetype plugin 'c.vim'
-"  g:C_Dictionary_File  must be global
-"
+" - keyword completion is enabled by the function 's:CreateAdditionalMaps' below
+"-------------------------------------------------------------------------------
+
 if !exists("g:C_Dictionary_File")
   let g:C_Dictionary_File = s:plugin_dir.'/c-support/wordlists/c-c++-keywords.list,'.
         \                   s:plugin_dir.'/c-support/wordlists/k+r.list,'.
         \                   s:plugin_dir.'/c-support/wordlists/stl_index.list'
 endif
-"
-"  Modul global variables (with default values) which can be overridden. {{{1
-"
+
+"-------------------------------------------------------------------------------
+" User configurable options   {{{3
+"-------------------------------------------------------------------------------
+
 if	s:MSWIN
 	call s:ApplyDefaultSetting ( 'C_CCompiler',     'gcc.exe' )
 	call s:ApplyDefaultSetting ( 'C_CplusCompiler', 'g++.exe' )
@@ -229,7 +349,6 @@ let s:C_ExecutableToRun       = ''
 let s:C_LineEndCommColDefault = 49
 let s:C_LoadMenus      				= 'yes'
 let s:C_CreateMenusDelayed    = 'no'
-let s:C_MenuHeader     				= 'yes'
 let s:C_OutputGvim            = 'vim'
 let s:C_Printheader           = "%<%f%h%m%<  %=%{strftime('%x %X')}     Page %N"
 let s:C_RootMenu  	   				= '&C\/C\+\+.'           " the name of the root menu of this plugin
@@ -249,37 +368,38 @@ let s:C_InsertFileHeader			= 'yes'
 let s:C_NonCComment						= '#'
 "
 let s:C_MenusVisible          = 'no'		" state variable controlling the C-menus
-"
-"------------------------------------------------------------------------------
-"
-"  Look for global variables (if any), to override the defaults.
-"
-call s:C_CheckGlobal('C_CodeCheckExeName     ')
-call s:C_CheckGlobal('C_CodeCheckOptions     ')
-call s:C_CheckGlobal('C_CodeSnippets         ')
-call s:C_CheckGlobal('C_CreateMenusDelayed   ')
-call s:C_CheckGlobal('C_Ctrl_j               ')
-call s:C_CheckGlobal('C_CustomTemplateFile   ')
-call s:C_CheckGlobal('C_ExeExtension         ')
-call s:C_CheckGlobal('C_GlobalTemplateFile   ')
-call s:C_CheckGlobal('C_GuiSnippetBrowser    ')
-call s:C_CheckGlobal('C_IndentErrorLog       ')
-call s:C_CheckGlobal('C_InsertFileHeader     ')
-call s:C_CheckGlobal('C_LineEndCommColDefault')
-call s:C_CheckGlobal('C_LoadMenus            ')
-call s:C_CheckGlobal('C_LocalTemplateFile    ')
-call s:C_CheckGlobal('C_Man                  ')
-call s:C_CheckGlobal('C_MenuHeader           ')
-call s:C_CheckGlobal('C_NonCComment          ')
-call s:C_CheckGlobal('C_ObjExtension         ')
-call s:C_CheckGlobal('C_OutputGvim           ')
-call s:C_CheckGlobal('C_Printheader          ')
-call s:C_CheckGlobal('C_RootMenu             ')
-call s:C_CheckGlobal('C_SourceCodeExtensions ')
-call s:C_CheckGlobal('C_TypeOfH              ')
-call s:C_CheckGlobal('C_UseToolbox           ')
 
-" xterm
+"-------------------------------------------------------------------------------
+" Get user configuration   {{{3
+"-------------------------------------------------------------------------------
+
+call s:GetGlobalSetting( 'C_CodeCheckExeName' )
+call s:GetGlobalSetting( 'C_CodeCheckOptions' )
+call s:GetGlobalSetting( 'C_CodeSnippets' )
+call s:GetGlobalSetting( 'C_CreateMenusDelayed' )
+call s:GetGlobalSetting( 'C_Ctrl_j' )
+call s:GetGlobalSetting( 'C_CustomTemplateFile' )
+call s:GetGlobalSetting( 'C_ExeExtension' )
+call s:GetGlobalSetting( 'C_GlobalTemplateFile' )
+call s:GetGlobalSetting( 'C_GuiSnippetBrowser' )
+call s:GetGlobalSetting( 'C_IndentErrorLog' )
+call s:GetGlobalSetting( 'C_InsertFileHeader' )
+call s:GetGlobalSetting( 'C_LineEndCommColDefault' )
+call s:GetGlobalSetting( 'C_LoadMenus' )
+call s:GetGlobalSetting( 'C_LocalTemplateFile' )
+call s:GetGlobalSetting( 'C_Man' )
+call s:GetGlobalSetting( 'C_NonCComment' )
+call s:GetGlobalSetting( 'C_ObjExtension' )
+call s:GetGlobalSetting( 'C_OutputGvim' )
+call s:GetGlobalSetting( 'C_Printheader' )
+call s:GetGlobalSetting( 'C_RootMenu' )
+call s:GetGlobalSetting( 'C_SourceCodeExtensions' )
+call s:GetGlobalSetting( 'C_TypeOfH' )
+call s:GetGlobalSetting( 'C_UseToolbox' )
+
+"-------------------------------------------------------------------------------
+" Xterm   {{{3
+"-------------------------------------------------------------------------------
 
 let s:Xterm_Executable = 'xterm'
 let s:C_XtermDefaults  = '-fa courier -fs 12 -geometry 80x24'
@@ -296,8 +416,10 @@ endif
 call s:GetGlobalSetting ( 'Xterm_Executable' )
 call s:ApplyDefaultSetting ( 'Xterm_Options', s:C_XtermDefaults )
 
-"----- some variables for internal use only -----------------------------------
-"
+"-------------------------------------------------------------------------------
+" Control variables (not user configurable)   {{{3
+"-------------------------------------------------------------------------------
+
 let s:stdbuf	= ''
 if executable( 'stdbuf' )
 	" stdbuf : the output stream will be unbuffered
@@ -319,11 +441,7 @@ let s:C_SplintIsExecutable		= executable( "splint" )
 let s:C_CppcheckIsExecutable	= executable( "cppcheck" )
 let s:C_CodeCheckIsExecutable	= executable( s:C_CodeCheckExeName )
 let s:C_IndentIsExecutable		= executable( "indent" )
-"
-"------------------------------------------------------------------------------
-"  Control variables (not user configurable)
-"------------------------------------------------------------------------------
-"
+
 let s:C_Com1          			= '/*'     " C-style : comment start
 let s:C_Com2          			= '*/'     " C-style : comment end
 "
@@ -357,26 +475,18 @@ let s:C_saved_global_option				= {}
 let s:C_SourceCodeExtensionsList	= split( s:C_SourceCodeExtensions, '\s\+' )
 "
 let s:CppcheckSeverity	= [ "all", "error", "warning", "style", "performance", "portability", "information" ]
-"
-"===  FUNCTION  ================================================================
-"          NAME:  C_MenuTitle     {{{1
-"   DESCRIPTION:  display warning
-"    PARAMETERS:  -
-"       RETURNS:  
-"===============================================================================
-" :TODO:17.03.2016 10:39:WM: remove this function, is it unused but for one usage,
-" which should also be reworked
-function! C_MenuTitle ()
-		echohl WarningMsg | echo "This is a menu header." | echohl None
-endfunction    " ----------  end of function C_MenuTitle  ----------
 
-"------------------------------------------------------------------------------
-"  C : C_InitMenus                              {{{1
-"  Initialization of C support menus
-"------------------------------------------------------------------------------
-"
-function! s:C_InitMenus ()
-	"
+" }}}3
+"-------------------------------------------------------------------------------
+
+" }}}2
+"-------------------------------------------------------------------------------
+
+"-------------------------------------------------------------------------------
+" s:InitMenus : Initialize menus.   {{{1
+"-------------------------------------------------------------------------------
+function! s:InitMenus ()
+
 	if ! has ( 'menu' )
 		return
 	endif
@@ -501,12 +611,12 @@ function! s:C_InitMenus ()
 	exe ihead.'&link<Tab>'.esc_mapl.'rl\ \ \ \ \<F9\>                <C-C>:call C_Link()<CR>:call C_HlMessage()<CR>'
 	exe ahead.'&run<Tab>'.esc_mapl.'rr\ \ \<C-F9\>                        :call C_Run()<CR>'
 	exe ihead.'&run<Tab>'.esc_mapl.'rr\ \ \<C-F9\>                   <C-C>:call C_Run()<CR>'
-	exe ahead.'executable\ to\ run<Tab>'.esc_mapl.'re                     :call C_ExeToRun()<CR>'
-	exe ihead.'executable\ to\ run<Tab>'.esc_mapl.'re                <C-C>:call C_ExeToRun()<CR>'
+	exe ahead.'executable\ to\ run<Tab>'.esc_mapl.'re                     :call <SID>ExeToRun()<CR>'
+	exe ihead.'executable\ to\ run<Tab>'.esc_mapl.'re                <C-C>:call <SID>ExeToRun()<CR>'
 	exe 'anoremenu '.s:MenuRun.'.cmd\.\ line\ &arg\.<Tab>'.esc_mapl.'ra\ \ \<S-F9\>         :CCmdlineArgs<Space>'
 	exe 'inoremenu '.s:MenuRun.'.cmd\.\ line\ &arg\.<Tab>'.esc_mapl.'ra\ \ \<S-F9\>    <C-C>:CCmdlineArgs<Space>'
-	exe ahead.'run\ &debugger<Tab>'.esc_mapl.'rd                           :call C_Debugger()<CR>'
-	exe ihead.'run\ &debugger<Tab>'.esc_mapl.'rd                      <C-C>:call C_Debugger()<CR>'
+	exe ahead.'run\ &debugger<Tab>'.esc_mapl.'rd                           :call <SID>Debugger()<CR>'
+	exe ihead.'run\ &debugger<Tab>'.esc_mapl.'rd                      <C-C>:call <SID>Debugger()<CR>'
 	"
 	exe ahead.'-SEP1-                                                      :'
 	"
@@ -521,14 +631,11 @@ function! s:C_InitMenus ()
 	if s:C_CppcheckIsExecutable==1
 		exe ahead.'cppcheck<Tab>'.esc_mapl.'rcc                            :call C_CppcheckCheck()<CR>:call C_HlMessage()<CR>'
 		exe ihead.'cppcheck<Tab>'.esc_mapl.'rcc                       <C-C>:call C_CppcheckCheck()<CR>:call C_HlMessage()<CR>'
-		"
-		if s:C_MenuHeader == 'yes'
-			exe ahead.'cppcheck\ severity<Tab>'.esc_mapl.'rccs.cppcheck\ severity     :call C_MenuTitle()<CR>'
-			exe ahead.'cppcheck\ severity<Tab>'.esc_mapl.'rccs.-Sep5-                 :'
-		endif
+
+		call mmtemplates#core#CreateMenus ( 'g:C_Templates', s:C_RootMenu, 'sub_menu', 'Run'.'.cppcheck\ severity<TAB>'.esc_mapl.'rccs' )
 
 		for level in s:CppcheckSeverity
-			exe ahead.'cppcheck\ severity<Tab>'.esc_mapl.'rccs.&'.level.'   :call C_GetCppcheckSeverity("'.level.'")<CR>'
+			exe ahead.'cppcheck\ severity.&'.level.'   :call C_GetCppcheckSeverity("'.level.'")<CR>'
 		endfor
 		exe ahead.'-SEP-CPPCHECK-   :'
 	endif
@@ -653,13 +760,12 @@ function! s:C_InitMenus ()
 	exe "vmenu          ".MenuPreprocessor.'#if\ &0\ #endif<Tab>'.esc_mapl.'pi0          <Esc>:call C_PPIf0("v")<CR>'
 	exe "amenu <silent> ".MenuPreprocessor.'&remove\ #if\ 0\ #endif<Tab>'.esc_mapl.'pr0       :call C_PPIf0Remove()<CR>'
 	exe "imenu <silent> ".MenuPreprocessor.'&remove\ #if\ 0\ #endif<Tab>'.esc_mapl.'pr0  <Esc>:call C_PPIf0Remove()<CR>'
-	"
-endfunction    " ----------  end of function  s:C_InitMenus  ----------
-"
-"===============================================================================================
-"----- Menu Functions --------------------------------------------------------------------------
-"===============================================================================================
-"
+
+	" }}}2
+	"===============================================================================================
+
+endfunction    " ----------  end of function  s:InitMenus  ----------
+
 "------------------------------------------------------------------------------
 "  C_SaveGlobalOption    {{{1
 "  param 1 : option name
@@ -1411,14 +1517,7 @@ function! C_ProtoShow ()
 		echo "currently no prototypes available"
 	endif
 endfunction    " ---------  end of function C_ProtoShow  ----------
-"
-"------------------------------------------------------------------------------
-"  C_EscapeBlanks : C_EscapeBlanks       {{{1
-"------------------------------------------------------------------------------
-function! C_EscapeBlanks (arg)
-	return  substitute( a:arg, " ", "\\ ", "g" )
-endfunction    " ---------  end of function C_EscapeBlanks  ----------
-"
+
 "------------------------------------------------------------------------------
 "  C_Compile : C_Compile       {{{1
 "------------------------------------------------------------------------------
@@ -1748,35 +1847,31 @@ function! C_XtermSize ()
 	let answer  = substitute( answer, '\s\+', "x", "" )						" replace inner whitespaces
 	let g:Xterm_Options	= substitute( g:Xterm_Options, regex, "-geometry ".answer , "" )
 endfunction    " ----------  end of function C_XtermSize ----------
-"
-"------------------------------------------------------------------------------
-"  C_ExeToRun : choose executable to run       {{{1
-"------------------------------------------------------------------------------
-function! C_ExeToRun ()
-	let	s:C_ExecutableToRun = C_Input( 'executable to run [tab compl.]: ', '', 'file' )
+
+"-------------------------------------------------------------------------------
+" s:ExeToRun : Choose an executable to run.   {{{1
+"-------------------------------------------------------------------------------
+function! s:ExeToRun ()
+	let s:C_ExecutableToRun = s:UserInput( 'executable to run [tab compl.]: ', '', 'file' )
 	if s:C_ExecutableToRun !~ "^\s*$"
 		if s:MSWIN
 			let s:C_ExecutableToRun = substitute(s:C_ExecutableToRun, '\\ ', ' ', 'g' )
 		endif
-		let	s:C_ExecutableToRun = escape( getcwd().'/'.s:C_ExecutableToRun, s:C_FilenameEscChar )
+		let s:C_ExecutableToRun = escape( fnamemodify( s:C_ExecutableToRun, ':p' ), s:C_FilenameEscChar )
 	endif
-endfunction    " ----------  end of function C_ExeToRun ----------
-"
-"
-"===  FUNCTION  ================================================================
-"          NAME:  C_Debugger     {{{1
-"   DESCRIPTION:  start debugger
-"    PARAMETERS:  -
-"       RETURNS:  
-"===============================================================================
-function! C_Debugger ()
-  "
-  silent exe  ":update"
+endfunction    " ----------  end of function s:ExeToRun ----------
+
+"-------------------------------------------------------------------------------
+" s:Debugger : Start a debugger   {{{1
+"-------------------------------------------------------------------------------
+function! s:Debugger ()
+
+	silent exe 'update'
 	if s:C_ExecutableToRun == ''
-		call C_ExeToRun()
+		call s:ExeToRun()
 	endif
-  let l:arguments 	= exists("b:C_CmdLineArgs") ? " ".b:C_CmdLineArgs : ""
-  "
+	let l:arguments = exists("b:C_CmdLineArgs") ? " ".b:C_CmdLineArgs : ""
+
   if  s:MSWIN
     let l:arguments = substitute( l:arguments, '^\s\+', ' ', '' )
     let l:arguments = substitute( l:arguments, '\s\+', "\" \"", 'g')
@@ -1824,8 +1919,8 @@ function! C_Debugger ()
   endif
   "
 	redraw!
-endfunction   " ---------- end of function  C_Debugger  ----------
-"
+endfunction   " ---------- end of function s:Debugger ----------
+
 "------------------------------------------------------------------------------
 "  C_SplintArguments : splint command line arguments       {{{1
 "------------------------------------------------------------------------------
@@ -2072,10 +2167,10 @@ function! C_HlMessage ( ... )
 	endif
 	echohl None
 endfunction    " ----------  end of function C_HlMessage ----------
-"
-"------------------------------------------------------------------------------
-"  C_Settings : settings     {{{1
-"------------------------------------------------------------------------------
+
+"-------------------------------------------------------------------------------
+" C_Settings : Print the settings.   {{{1
+"-------------------------------------------------------------------------------
 function! C_Settings ( verbose )
 	"
 	if     s:MSWIN | let sys_name = 'Windows'
@@ -2147,6 +2242,7 @@ function! C_Settings ( verbose )
 	let txt = txt.'          libraries (C++) :  "'.g:C_CplusLibs."\"\n"
 	let txt = txt.'         C / C++ compiler :  "'.g:C_CCompiler.'" / "'.g:C_CplusCompiler."\"\n"
 	let txt = txt.'                 debugger :  "'.g:C_Debugger."\"\n"
+	let txt = txt.'             exec. to run :  "'.s:C_ExecutableToRun."\"\n"
 	" ----- output ------------------------------
 	if a:verbose >= 1
 		let txt = txt."\n"
@@ -2387,21 +2483,12 @@ function! C_CreateGuiMenus ()
 		aunmenu <silent> &Tools.Load\ C\ Support
 		amenu   <silent> 40.1000 &Tools.-SEP100- :
 		amenu   <silent> 40.1030 &Tools.Unload\ C\ Support <C-C>:call C_RemoveGuiMenus()<CR>
-		call s:C_RereadTemplates()
-		call s:C_InitMenus()
+		call s:RereadTemplates()
+		call s:InitMenus()
 		let  s:C_MenusVisible = 'yes'
 	endif
 endfunction    " ----------  end of function C_CreateGuiMenus  ----------
-"
-"------------------------------------------------------------------------------
-"  s:CheckAndRereadTemplates     {{{1
-"------------------------------------------------------------------------------
-function! s:CheckAndRereadTemplates ()
-	if ! exists ( 'g:C_Templates' )
-		call s:C_RereadTemplates()        
-	endif
-endfunction    " ----------  end of function s:CheckAndRereadTemplates  ----------
-"
+
 "------------------------------------------------------------------------------
 "  === Templates API ===   {{{1
 "------------------------------------------------------------------------------
@@ -2424,15 +2511,12 @@ function! C_ResetMapLeader ()
 	endif
 endfunction    " ----------  end of function C_ResetMapLeader  ----------
 " }}}2
-"
-"===  FUNCTION  ================================================================
-"          NAME:  C_RereadTemplates     {{{1
-"   DESCRIPTION:  rebuild commands and the menu from the (changed) template file
-"    PARAMETERS:  -
-"       RETURNS:  
-"===============================================================================
-function! s:C_RereadTemplates ()
-	"
+
+"-------------------------------------------------------------------------------
+" s:RereadTemplates : Reload the templates.   {{{1
+"-------------------------------------------------------------------------------
+function! s:RereadTemplates ()
+
 	"-------------------------------------------------------------------------------
 	" SETUP TEMPLATE LIBRARY
 	"-------------------------------------------------------------------------------
@@ -2460,7 +2544,13 @@ function! s:C_RereadTemplates ()
 	"
 	" syntax: comments
 	call mmtemplates#core#ChangeSyntax ( g:C_Templates, 'comment', '§' )
-	"
+
+	" property: file skeletons
+	call mmtemplates#core#Resource ( g:C_Templates, 'add', 'property', 'C::FileSkeleton::Header',   'Comments.file description impl' )
+	call mmtemplates#core#Resource ( g:C_Templates, 'add', 'property', 'C::FileSkeleton::Source',   'Comments.file description header' )
+	call mmtemplates#core#Resource ( g:C_Templates, 'add', 'property', 'Cpp::FileSkeleton::Header', 'Comments.file description impl' )
+	call mmtemplates#core#Resource ( g:C_Templates, 'add', 'property', 'Cpp::FileSkeleton::Source', 'Comments.file description header' )
+
 	" property: Doxygen menu
 	call mmtemplates#core#Resource ( g:C_Templates, 'add', 'property', 'Doxygen::BriefAM::Menu', '' )
 	call mmtemplates#core#Resource ( g:C_Templates, 'add', 'property', 'Doxygen::BriefAM::Map', '' )
@@ -2504,38 +2594,75 @@ function! s:C_RereadTemplates ()
 	" get the jump tags
 	let s:C_TemplateJumpTarget = mmtemplates#core#Resource ( g:C_Templates, "jumptag" )[0]
 	"
-endfunction    " ----------  end of function s:C_RereadTemplates  ----------
+endfunction    " ----------  end of function s:RereadTemplates  ----------
 
-"===  FUNCTION  ================================================================
-"          NAME:  s:CheckTemplatePersonalization     {{{1
-"   DESCRIPTION:  check whether the name, .. has been set
-"    PARAMETERS:  -
-"       RETURNS:
-"===============================================================================
+"-------------------------------------------------------------------------------
+" s:CheckTemplatePersonalization : Check whether the name, .. has been set.   {{{1
+"-------------------------------------------------------------------------------
+
 let s:DoneCheckTemplatePersonalization = 0
-"
+
 function! s:CheckTemplatePersonalization ()
-	"
+
 	" check whether the templates are personalized
-	if ! s:DoneCheckTemplatePersonalization
-				\ && mmtemplates#core#ExpandText ( g:C_Templates, '|AUTHOR|' ) == 'YOUR NAME'
-		let s:DoneCheckTemplatePersonalization = 1
-		"
-		let maplead = mmtemplates#core#Resource ( g:C_Templates, 'get', 'property', 'Templates::Mapleader' )[0]
-		"
-		redraw
-		echohl Search
-		echo 'The personal details (name, mail, ...) are not set in the template library.'
-		echo 'They are used to generate comments, ...'
-		echo 'To set them, start the setup wizard using:'
-		echo '- use the menu entry "C/C++ -> Snippets -> template setup wizard"'
-		echo '- use the map "'.maplead.'ntw" inside a C buffer'
-		echo "\n"
-		echohl None
+	if s:DoneCheckTemplatePersonalization
+				\ || mmtemplates#core#ExpandText ( g:C_Templates, '|AUTHOR|' ) != 'YOUR NAME'
+				\ || s:C_InsertFileHeader != 'yes'
+		return
 	endif
-	"
+
+	let s:DoneCheckTemplatePersonalization = 1
+
+	let maplead = mmtemplates#core#Resource ( g:C_Templates, 'get', 'property', 'Templates::Mapleader' )[0]
+
+	redraw
+	call s:ImportantMsg ( 'The personal details are not set in the template library. Use the map "'.maplead.'ntw".' )
+
 endfunction    " ----------  end of function s:CheckTemplatePersonalization  ----------
-"
+
+"-------------------------------------------------------------------------------
+" s:CheckAndRereadTemplates : Make sure the templates are loaded.   {{{1
+"-------------------------------------------------------------------------------
+function! s:CheckAndRereadTemplates ()
+	if ! exists ( 'g:C_Templates' )
+		call s:RereadTemplates()
+	endif
+endfunction    " ----------  end of function s:CheckAndRereadTemplates  ----------
+
+"-------------------------------------------------------------------------------
+" s:InsertFileHeader : Insert a file header.   {{{1
+"-------------------------------------------------------------------------------
+function! s:InsertFileHeader ()
+	call s:CheckAndRereadTemplates()
+
+	" prevent insertion for a file generated from a link error
+	if isdirectory(expand('%:p:h')) && s:C_InsertFileHeader == 'yes'
+		let ft = &filetype == 'cpp' ? 'Cpp' : 'C'
+
+		if index( s:C_SourceCodeExtensionsList, expand('%:e') ) >= 0
+			let templ_s = mmtemplates#core#Resource ( g:C_Templates, 'get', 'property', ft.'::FileSkeleton::Source' )[0]
+		else
+			let templ_s = mmtemplates#core#Resource ( g:C_Templates, 'get', 'property', ft.'::FileSkeleton::Header' )[0]
+		endif
+
+		" insert templates in reverse order, always above the first line
+		" the last one to insert (the first in the list), will determine the
+		" placement of the cursor
+		let templ_l = split ( templ_s, ';' )
+		for i in range ( len(templ_l)-1, 0, -1 )
+			exe 1
+			if -1 != match ( templ_l[i], '^\s\+$' )
+				put! =''
+			else
+				call mmtemplates#core#InsertTemplate ( g:C_Templates, templ_l[i], 'placement', 'above' )
+			endif
+		endfor
+		if len(templ_l) > 0
+			set modified
+		endif
+	endif
+endfunction    " ----------  end of function s:InsertFileHeader  ----------
+
 "------------------------------------------------------------------------------
 "  C_ToolMenu     {{{1
 "------------------------------------------------------------------------------
@@ -2558,26 +2685,6 @@ function! C_RemoveGuiMenus ()
 		let s:C_MenusVisible = 'no'
 	endif
 endfunction    " ----------  end of function C_RemoveGuiMenus  ----------
-
-"------------------------------------------------------------------------------
-" C_OpenFold     {{{1
-" Open fold and go to the first or last line of this fold. 
-"------------------------------------------------------------------------------
-function! C_OpenFold ( mode )
-	if foldclosed(".") >= 0
-		" we are on a closed  fold: get end position, open fold, jump to the
-		" last line of the previously closed fold
-		let	foldstart	= foldclosed(".")
-		let	foldend		= foldclosedend(".")
-		normal! zv
-		if a:mode == 'below'
-			exe ":".foldend
-		endif
-		if a:mode == 'start'
-			exe ":".foldstart
-		endif
-	endif
-endfunction    " ----------  end of function C_OpenFold  ----------
 
 "------------------------------------------------------------------------------
 "  C_HighlightJumpTargets   {{{1
@@ -2605,32 +2712,7 @@ function! C_JumpCtrlJ ()
 	endif
 	return ''
 endfunction    " ----------  end of function C_JumpCtrlJ  ----------
-"
-"------------------------------------------------------------------------------
-"  C_ExpandSingleMacro     {{{1
-"------------------------------------------------------------------------------
-function! C_ExpandSingleMacro ( val, macroname, replacement )
-  return substitute( a:val, escape(a:macroname, '$' ), a:replacement, "g" )
-endfunction    " ----------  end of function C_ExpandSingleMacro  ----------
 
-"------------------------------------------------------------------------------
-"  check for header or implementation file     {{{1
-"------------------------------------------------------------------------------
-function! C_InsertTemplateWrapper ()
-	" prevent insertion for a file generated from a link error:
-	"
-	call s:CheckAndRereadTemplates()
-	if isdirectory(expand('%:p:h')) && s:C_InsertFileHeader == 'yes'
-		if index( s:C_SourceCodeExtensionsList, expand('%:e') ) >= 0 
- 			call mmtemplates#core#InsertTemplate(g:C_Templates, 'Comments.file description impl')
-		else
- 			call mmtemplates#core#InsertTemplate(g:C_Templates, 'Comments.file description header')
-		endif
-		set modified
-	endif
-endfunction    " ----------  end of function C_InsertTemplateWrapper  ----------
-
-"
 "===  FUNCTION  ================================================================
 "          NAME:  CreateAdditionalMaps     {{{1
 "   DESCRIPTION:  create additional maps
@@ -2793,12 +2875,12 @@ function! s:CreateAdditionalMaps ()
 	inoremap <buffer>  <silent>  <LocalLeader>rl    <C-C>:call C_Link()<CR>:call C_HlMessage()<CR>
 	noremap  <buffer>  <silent>  <LocalLeader>rr         :call C_Run()<CR>
 	inoremap <buffer>  <silent>  <LocalLeader>rr    <C-C>:call C_Run()<CR>
-	noremap  <buffer>  <silent>  <LocalLeader>re         :call C_ExeToRun()<CR>
-	inoremap <buffer>  <silent>  <LocalLeader>re    <C-C>:call C_ExeToRun()<CR>
+	noremap  <buffer>  <silent>  <LocalLeader>re         :call <SID>ExeToRun()<CR>
+	inoremap <buffer>  <silent>  <LocalLeader>re    <C-C>:call <SID>ExeToRun()<CR>
 	noremap  <buffer>            <LocalLeader>ra         :CCmdlineArgs<Space>
 	inoremap <buffer>            <LocalLeader>ra    <C-C>:CCmdlineArgs<Space>
-	noremap  <buffer>  <silent>  <LocalLeader>rd         :call C_Debugger()<CR>
-	inoremap <buffer>  <silent>  <LocalLeader>rd    <C-C>:call C_Debugger()<CR>
+	noremap  <buffer>  <silent>  <LocalLeader>rd         :call <SID>Debugger()<CR>
+	inoremap <buffer>  <silent>  <LocalLeader>rd    <C-C>:call <SID>Debugger()<CR>
 	noremap  <buffer>  <silent>  <LocalLeader>rp         :call C_SplintCheck()<CR>:call C_HlMessage()<CR>
 	inoremap <buffer>  <silent>  <LocalLeader>rp    <C-C>:call C_SplintCheck()<CR>:call C_HlMessage()<CR>
 	noremap  <buffer>  <silent>  <LocalLeader>rpa        :call C_SplintArguments()<CR>
@@ -2925,7 +3007,7 @@ if has("autocmd")
 				\	if ( &filetype == 'cpp' || &filetype == 'c') |
 				\		if ! exists( 'g:C_Templates' ) |
 				\			if s:C_LoadMenus == 'yes' | call C_CreateGuiMenus ()    |
-				\			else                      | call s:C_RereadTemplates () |
+				\			else                      | call s:RereadTemplates () |
 				\			endif |
 				\		endif |
 				\		call s:CreateAdditionalMaps() |
@@ -2940,7 +3022,7 @@ if has("autocmd")
 				" template styles are the default settings
 				"-------------------------------------------------------------------------------
 				autocmd BufNewFile  * if &filetype =~ '^\(c\|cpp\)$' && expand("%:e") !~ 'ii\?' |
-							\     call C_InsertTemplateWrapper() | endif
+							\     call s:InsertFileHeader() | endif
 				"
 			else
 				"-------------------------------------------------------------------------------
@@ -2948,7 +3030,7 @@ if has("autocmd")
 				"-------------------------------------------------------------------------------
 				for [ pattern, stl ] in items( g:C_Styles )
 					exe "autocmd BufNewFile,BufRead,BufEnter ".pattern." call mmtemplates#core#ChooseStyle ( g:C_Templates, '".stl."')"
-					exe "autocmd BufNewFile                  ".pattern." call C_InsertTemplateWrapper()"
+					exe "autocmd BufNewFile                  ".pattern." call s:InsertFileHeader()"
 				endfor
 				"
 			endif
@@ -2960,6 +3042,8 @@ if has("autocmd")
 	exe 'autocmd BufRead *.'.join( s:C_SourceCodeExtensionsList, '\|*.' )
 				\     .' call C_HighlightJumpTargets()'
 endif " has("autocmd")
-"
+" }}}1
+"-------------------------------------------------------------------------------
+
 "=====================================================================================
 " vim: tabstop=2 shiftwidth=2 foldmethod=marker
