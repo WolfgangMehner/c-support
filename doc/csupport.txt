@@ -1,4 +1,4 @@
-*csupport.txt*                  C/C++ Support                      Feb 05 2017
+*csupport.txt*                  C/C++ Support                      Oct 03 2017
 
 C/C++ Support                                            *c-support* *csupport*
 
@@ -1067,7 +1067,8 @@ To switch the make tool box off add the following line to the file .vimrc
 >
   let g:C_UseTool_make  = 'no'
 <
-The hotkeys for the make tool are defined in the file ~/.vim/ftplugin/c.vim .
+The maps for the make tool can be defined in the file '~/.vim/ftplugin/c.vim'.
+Compare the example filetype plug-in 'c-support/rc/c.vim'.
 
 1.8.2 Other Tools                                   *csupport-toolbox-others*
 
@@ -1864,17 +1865,17 @@ The file skeletons are controlled via these properties, which can be set in
 one of the template files. For each filetype, the headers and source files can
 be different:
 >
-  SetProperty ( 'C::FileSkeleton::Header',   'Comments.file description impl' )
-  SetProperty ( 'C::FileSkeleton::Source',   'Comments.file description header' )
-  SetProperty ( 'Cpp::FileSkeleton::Header', 'Comments.file description impl' )
-  SetProperty ( 'Cpp::FileSkeleton::Source', 'Comments.file description header' )
+  SetProperty ( 'C::FileSkeleton::Header',   'Comments.file description header' )
+  SetProperty ( 'C::FileSkeleton::Source',   'Comments.file description impl' )
+  SetProperty ( 'Cpp::FileSkeleton::Header', 'Comments.file description header' )
+  SetProperty ( 'Cpp::FileSkeleton::Source', 'Comments.file description impl' )
 <
 This inserts only comments to describe the file. To disable the insertion for
 one of these types, set the property to an empty string: >
   SetProperty ( 'C::FileSkeleton::Source', '' )
 In general, these properties are semicolon-separated lists of templates to be
 inserted: >
-  SetProperty ( 'C::FileSkeleton::Source', 'Comments.file description header; ;Comments.all sections.implementation, C' )
+  SetProperty ( 'C::FileSkeleton::Source', 'Comments.file description impl; ;Comments.all sections.implementation, C' )
 This will insert the file description and the file section comments (see
 |csupport-comm-sections|). If a space appears as an entry in the list, an
 empty line is inserted: >
@@ -2038,8 +2039,8 @@ See |folding| for more information on folding.
 9.  Additional Mappings                                 *csupport-ad-mappings*
 ==============================================================================
 
-There are a few additional filetype specific key mappings defined in
-'~/.vim/ftplugin/c.vim'.
+Additional mappings can be defined in the file '~/.vim/ftplugin/c.vim'.
+Compare the example filetype plug-in 'c-support/rc/c.vim'.
 
 Complete a classical C comment: '/*' => '/* | */' (modes: i,v).
 
@@ -2054,15 +2055,16 @@ Open a block (modes: i,v):
               }
 In visual mode the content of the new block will be indented.
 
-The file customization.cpp.vim provides additional insert mode mappings to
-facilitate writting cin and cout statements, e.g.
+The file 'c-support/rc/cpp.vim' provides additional insert mode mappings to
+facilitate writing cin and cout statements, e.g.
 >
-  '<<'    -> ' << |'
-  '<<"'   -> ' << "|" '
-  '<<;'   -> ' << "|\n";'
-  '>>'    -> ' >> |'
+  '<<'   ->  ' << |'
+  '<<"'  ->  ' << "|" '
+  '<<;'  ->  ' << "|\n";'
+  '>>'   ->  ' >> |'
 <
-Copy this file to ~/.vim/ftplugin and rename it to 'cpp.vim'.
+Copy the files 'c-support/rc/c.vim' or 'c-support/rc/cpp.vim'
+to '~/.vim/ftplugin'.
 
 ==============================================================================
 10.  WINDOWS PARTICULARITIES                                *csupport-windows*

@@ -3,8 +3,9 @@ Preface
 
 This repository is mainly for the use with plug-in managers.
 
-The development happens here:
-[WolfgangMehner/vim-plugins](https://github.com/WolfgangMehner/vim-plugins)
+Have a look at the [Screenshot Page](https://wolfgangmehner.github.io/vim-plugins/csupport.html).
+
+The development happens in [WolfgangMehner/vim-plugins](https://github.com/WolfgangMehner/vim-plugins).
 
 
 --------------------------------------------------------------------------------
@@ -222,6 +223,10 @@ RELEASE NOTES FOR VERSION 6.2.1
 - Fix a problem with the path when setting 'Run->executable to run'.
 - New and reworked templates. Change statement templates.
 
+Note: The filetype plug-ins have been moved, and are thus not loaded
+automatically anymore. Copy them from 'c-support/rc' to 'ftplugin',
+or add the commands there to your own filetype plug-ins.
+
 Note: This reworks most of the statement templates. The loop and if templates
 which do not introduce a block have been remove entirely, since the templates
 without blocks save barely any typing. They do not make much sense in visual
@@ -280,12 +285,6 @@ ___The following files and extensions are for convenience only.___
 ___c.vim will work without them.___
 ___The settings are explained in the files themselves.___
 
-    ftplugin/c.vim
-                        Example filetype plug-in for C/C++:
-                          defines additional maps
-    ftplugin/make.vim
-                        Access hotkeys for make(1) in makefiles.
-
     ftdetect/template.vim
     ftplugin/template.vim
     syntax/template.vim
@@ -296,8 +295,6 @@ ___The settings are explained in the files themselves.___
     c-support/doc/ChangeLog
                         Complete change log.
 
-    c-support/rc/customization.cpp.vim
-                        Additional mappings for C++.
     c-support/rc/customization.ctags
                         Additional settings for use in .ctags to enable
                         navigation through makefiles and qmake files with the
@@ -316,6 +313,13 @@ ___The settings are explained in the files themselves.___
                           font, use of dictionaries, ...
                         The file is commented. Append it to your .vimrc if you
                         like.
+
+    c-support/rc/c.vim
+    c-support/rc/cpp.vim
+                        Example filetype plug-in for C/C++:
+                          defines additional maps
+    c-support/rc/make.vim
+                        Access hotkeys for make(1) in makefiles.
 
     c-support/rc/*.templates
                         Sample template files for customization. Used by the
