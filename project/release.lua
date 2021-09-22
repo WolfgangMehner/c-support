@@ -11,10 +11,8 @@
 --                - awk
 --                - bash
 --                - c
---                - git
 --                - latex
 --                - lua
---                - matlab
 --                - perl
 --                - vim
 --
@@ -41,7 +39,7 @@
 --  Auxiliary Functions   {{{1
 ------------------------------------------------------------------------
 
-function escape_shell ( text )
+local function escape_shell ( text )
 	return string.gsub ( text, '[%(%);&=\' ]', function ( m ) return '\\' .. m end )
 end  ----------  end of function escape_shell  ----------
 
@@ -107,8 +105,10 @@ filelists.bash = {
 	'doc/toolbox.txt',
 	'doc/bashdbintegration.txt',
 	'ftdetect/template.vim',
+	'ftplugin/bashhelp.vim',
 	'ftplugin/template.vim',
 	'plugin/bash-support.vim',
+	'syntax/bashhelp.vim',
 	'syntax/template.vim',
 	'bash-support/codesnippets/',
 	'bash-support/doc/ChangeLog',
@@ -157,24 +157,6 @@ filelists.c = {
 }
 
 filelists_repo.c = {
-	'project/release.lua',
-}
-
-------------------------------------------------------------------------
---  Git   {{{1
-------------------------------------------------------------------------
-
-filelists.git = {
-	'doc/gitsupport.txt',
-	'plugin/git-support.vim',
-	'git-support/doc/',
-	'git-support/rc/',
-	'git-support/README.md',
-	'syntax/gits*.vim',
-}
-
-filelists_repo.git = {
-	'git-support/git-doc/',
 	'project/release.lua',
 }
 
@@ -240,30 +222,6 @@ filelists_repo.lua = {
 }
 
 ------------------------------------------------------------------------
---  Matlab   {{{1
-------------------------------------------------------------------------
-
-filelists.matlab = {
-	'autoload/mmtemplates/',
-	'doc/matlabsupport.txt',
-	'doc/templatesupport.txt',
-	'ftdetect/template.vim',
-	'ftplugin/matlab.vim',
-	'ftplugin/template.vim',
-	'plugin/matlab-support.vim',
-	'syntax/template.vim',
-	'matlab-support/codesnippets/',
-	'matlab-support/doc/',
-	'matlab-support/rc/',
-	'matlab-support/templates/',
-	'matlab-support/README.md',
-}
-
-filelists_repo.matlab = {
-	'project/release.lua',
-}
-
-------------------------------------------------------------------------
 --  Perl   {{{1
 ------------------------------------------------------------------------
 
@@ -278,10 +236,6 @@ filelists.perl = {
 	'doc/toolbox.txt',
 	'doc/toolboxmake.txt',
 	'ftdetect/template.vim',
-	'ftplugin/make.vim',
-	'ftplugin/perl.vim',
-	'ftplugin/pod.vim',
-	'ftplugin/qf.vim',
 	'ftplugin/template.vim',
 	'plugin/perl-support.vim',
 	'syntax/template.vim',
@@ -448,7 +402,7 @@ elseif args[2] == 'cp-repo' then
 	if #args >= 3 then
 
 		local dest_dir = args[3]
-		filelist_compl = {}
+		local filelist_compl = {}
 
 		for key, val in pairs ( filelist ) do
 			table.insert ( filelist_compl, val )
@@ -459,7 +413,6 @@ elseif args[2] == 'cp-repo' then
 		end
 
 		os.execute ( 'mkdir -p '..dest_dir )
-		os.execute ( 'mkdir -p '..dest_dir..'/project' )
 
 		local cmd = 'cp --parents -r '..table.concat ( filelist_compl, ' ' )..' '..dest_dir
 
@@ -474,7 +427,7 @@ elseif args[2] == 'cp-repo' then
 		end
 
 		if success then
-			cmd = 'echo "\\ntaken from WolfgangMehner/vim-plugins, revision\\nhttps://github.com/WolfgangMehner/vim-plugins/commit/$(git rev-parse HEAD)" >> '..dest_dir..'/project/commit.txt'
+			cmd = 'echo "\\ntaken from WolfgangMehner/vim-plugins, revision\\nhttps://github.com/WolfgangMehner/vim-plugins/commit/$(git rev-parse HEAD)" >> '..dest_dir..'/commit.txt'
 
 			success, res_reason, res_status = os.execute ( cmd )
 		end
@@ -512,10 +465,8 @@ if print_help then
 	print ( '\tawk' )
 	print ( '\tbash' )
 	print ( '\tc' )
-	print ( '\tgit' )
 	print ( '\tlatex' )
 	print ( '\tlua' )
-	print ( '\tmatlab' )
 	print ( '\tperl' )
 	print ( '\tvim' )
 	print ( '' )

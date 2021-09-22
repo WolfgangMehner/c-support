@@ -17,9 +17,9 @@
 "
 "        Version:  see variable  g:C_Version  below
 "        Created:  04.11.2000
-"       Revision:  29.01.2017
+"       Revision:  22.11.2020
 "        License:  Copyright (c) 2000-2014, Fritz Mehner
-"                  Copyright (c) 2015-2016, Wolfgang Mehner
+"                  Copyright (c) 2015-2020, Wolfgang Mehner
 "                  This program is free software; you can redistribute it and/or
 "                  modify it under the terms of the GNU General Public License as
 "                  published by the Free Software Foundation, version 2 of the
@@ -50,7 +50,7 @@ if exists("g:C_Version") || &cp
 	finish
 endif
 
-let g:C_Version= "6.2.1pre"                  " version number of this script; do not change
+let g:C_Version= "6.2.1beta"                  " version number of this script; do not change
 
 "-------------------------------------------------------------------------------
 " === Auxiliary functions ===   {{{1
@@ -70,10 +70,10 @@ let g:C_Version= "6.2.1pre"                  " version number of this script; do
 "-------------------------------------------------------------------------------
 
 function! s:ApplyDefaultSetting ( varname, value )
-	if ! exists ( 'g:'.a:varname )
-		let { 'g:'.a:varname } = a:value
+	if ! exists( 'g:'.a:varname )
+		let {'g:'.a:varname} = a:value
 	endif
-endfunction    " ----------  end of function s:ApplyDefaultSetting  ----------
+endfunction
 
 "-------------------------------------------------------------------------------
 " s:ErrorMsg : Print an error message.   {{{2
@@ -92,7 +92,7 @@ function! s:ErrorMsg ( ... )
 		echomsg line
 	endfor
 	echohl None
-endfunction    " ----------  end of function s:ErrorMsg  ----------
+endfunction
 
 "-------------------------------------------------------------------------------
 " s:GetGlobalSetting : Get a setting from a global variable.   {{{2
@@ -113,10 +113,10 @@ endfunction    " ----------  end of function s:ErrorMsg  ----------
 function! s:GetGlobalSetting ( varname, ... )
 	let lname = a:varname
 	let gname = a:0 >= 1 ? a:1 : lname
-	if exists ( 'g:'.gname )
-		let { 's:'.lname } = { 'g:'.gname }
+	if exists( 'g:'.gname )
+		let {'s:'.lname} = {'g:'.gname}
 	endif
-endfunction    " ----------  end of function s:GetGlobalSetting  ----------
+endfunction
 
 "-------------------------------------------------------------------------------
 " s:ImportantMsg : Print an important message.   {{{2
@@ -2950,11 +2950,26 @@ function! s:CreateAdditionalMaps ()
 	call mmtemplates#core#CreateMaps ( 'g:C_Templates', g:C_MapLeader, 'do_special_maps', 'do_del_opt_map' )
 	"
 endfunction    " ----------  end of function s:CreateAdditionalMaps  ----------
-"
-" Plug-in setup:  {{{1
-"
+
+"-------------------------------------------------------------------------------
+" s:Initialize : Initialize templates, menus, and maps.   {{{1
+"-------------------------------------------------------------------------------
+function! s:Initialize ( ftype )
+	if ! exists( 'g:C_Templates' ) |
+		if s:C_LoadMenus == 'yes' | call C_CreateGuiMenus()
+		else                      | call s:RereadTemplates()
+		endif |
+	endif |
+	call s:CreateAdditionalMaps()
+	call s:CheckTemplatePersonalization()
+endfunction    " ----------  end of function s:Initialize  ----------
+
+"-------------------------------------------------------------------------------
+" === Setup: Templates, toolbox and menus ===   {{{1
+"-------------------------------------------------------------------------------
+
 "------------------------------------------------------------------------------
-"  setup the toolbox
+"  setup the toolbox   {{{2
 "------------------------------------------------------------------------------
 "
 if s:C_UseToolbox == 'yes'
@@ -2968,80 +2983,59 @@ if s:C_UseToolbox == 'yes'
 	"call mmtoolbox#tools#Info ( s:C_Toolbox )
 	"
 endif
-"
+
 "------------------------------------------------------------------------------
-"  show / hide the c-support menus
-"  define key mappings (gVim only)
+"  show / hide the C-Support menus   {{{2
 "------------------------------------------------------------------------------
-"
+
 call C_ToolMenu()
-"
+
 if s:C_LoadMenus == 'yes' && s:C_CreateMenusDelayed == 'no'
 	call C_CreateGuiMenus()
 endif
-"
+
 "------------------------------------------------------------------------------
-"  Automated header insertion
-"  Local settings for the quickfix window
+"  lazy initialization / automated header insertion   {{{2
 "
 "			Vim always adds the {cmd} after existing autocommands,
 "			so that the autocommands execute in the order in which
 "			they were given. The order matters!
 "------------------------------------------------------------------------------
 if has("autocmd")
-	"
-	"  *.h has filetype 'cpp' by default; this can be changed to 'c' :
-	"
-	if s:C_TypeOfH=='c'
-		autocmd BufNewFile,BufEnter  *.h  :set filetype=c
-	endif
-	"
-	" C/C++ source code files which should not be preprocessed.
-	"
-	autocmd BufNewFile,BufRead  *.i  :set filetype=c
-	autocmd BufNewFile,BufRead  *.ii :set filetype=cpp
-	"
-	" DELAYED LOADING OF THE TEMPLATE DEFINITIONS
-	"
-	autocmd FileType *
-				\	if ( &filetype == 'cpp' || &filetype == 'c') |
-				\		if ! exists( 'g:C_Templates' ) |
-				\			if s:C_LoadMenus == 'yes' | call C_CreateGuiMenus ()    |
-				\			else                      | call s:RereadTemplates () |
-				\			endif |
-				\		endif |
-				\		call s:CreateAdditionalMaps() |
-				\		call s:CheckTemplatePersonalization() |
-				\	endif
+	augroup CSupport
 
-		"-------------------------------------------------------------------------------
-		" style switching :Automated header insertion (suffixes from the gcc manual)
-		"-------------------------------------------------------------------------------
-			if !exists( 'g:C_Styles' )
-				"-------------------------------------------------------------------------------
-				" template styles are the default settings
-				"-------------------------------------------------------------------------------
-				autocmd BufNewFile  * if &filetype =~ '^\(c\|cpp\)$' && expand("%:e") !~ 'ii\?' |
-							\     call s:InsertFileHeader() | endif
-				"
-			else
-				"-------------------------------------------------------------------------------
-				" template styles are related to file extensions 
-				"-------------------------------------------------------------------------------
-				for [ pattern, stl ] in items( g:C_Styles )
-					exe "autocmd BufNewFile,BufRead,BufEnter ".pattern." call mmtemplates#core#ChooseStyle ( g:C_Templates, '".stl."')"
-					exe "autocmd BufNewFile                  ".pattern." call s:InsertFileHeader()"
-				endfor
-				"
-			endif
-	"
-	" Wrap error descriptions in the quickfix window.
-	"
-	autocmd BufReadPost quickfix  setlocal wrap | setlocal linebreak
-	"
-	exe 'autocmd BufRead *.'.join( s:C_SourceCodeExtensionsList, '\|*.' )
+	" adjust header filetype:
+	" *.h has filetype 'cpp' by default, this can be changed to 'c'
+	if s:C_TypeOfH=='c'
+		autocmd BufNewFile,BufEnter  *.h  set filetype=c | " COMMENT: g:C_TypeOfH == 'c'
+	endif
+
+	" create menus and maps
+	autocmd FileType c    call s:Initialize('c')
+	autocmd FileType cpp  call s:Initialize('cpp')
+
+	" insert file header
+	if !exists( 'g:C_Styles' )
+		" template styles are the default settings
+		autocmd BufNewFile *  if &filetype == 'c'   && expand("%:e") !~ 'ii\?' | call s:InsertFileHeader() | endif
+		autocmd BufNewFile *  if &filetype == 'cpp' && expand("%:e") !~ 'ii\?' | call s:InsertFileHeader() | endif
+	else
+		" template styles are related to file extensions
+		for [ pattern, stl ] in items( g:C_Styles )
+			exe "autocmd BufNewFile,BufReadPost ".pattern." call mmtemplates#core#ChooseStyle ( g:C_Templates, '".stl."')"
+			exe "autocmd BufNewFile             ".pattern." call s:InsertFileHeader()"
+		endfor
+	endif
+
+	" highlight jump targets after opening file
+	exe 'autocmd BufReadPost *.'.join( s:C_SourceCodeExtensionsList, '\|*.' )
 				\     .' call C_HighlightJumpTargets()'
+
+	augroup END
 endif " has("autocmd")
+" }}}2
+"-------------------------------------------------------------------------------
+
 " }}}1
 "-------------------------------------------------------------------------------
 
